@@ -7,6 +7,7 @@ import BathroomBackground from "@/components/BathroomBackground";
 import MuteButton from "@/components/MuteButton";
 import SpeechBubble from "@/components/SpeechBubble";
 import WeekCalendar from "@/components/WeekCalendar";
+import ToothpasteTubeIcon from "@/components/illustrations/ToothpasteTubeIcon";
 import LongPressButton from "@/components/LongPressButton";
 import { ALL_STICKERS, displayName, getActiveProfiles, getProfile, listProfiles, isHalloweenSeason, streakOf, weekOf } from "@/lib/progress";
 import { playStartSound, unlockAudio } from "@/lib/sounds";
@@ -180,16 +181,7 @@ const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreen
           className="absolute bottom-5 left-4 w-14 h-14 rounded-full bg-white/80 hover:bg-white border-[3px] border-ink/15 shadow-md flex items-center justify-center"
           aria-label="Le petit pois de dentifrice"
         >
-          <svg viewBox="0 0 48 48" className="w-9 h-9" aria-hidden>
-            <g transform="rotate(-30 24 24)">
-              <rect x="4" y="27" width="22" height="7" rx="3.5" className="fill-bubblegum stroke-ink" strokeWidth="2" />
-              <rect x="22" y="23" width="20" height="14" rx="4" className="fill-mint stroke-ink" strokeWidth="2" />
-              <rect x="26" y="15" width="3" height="9" rx="1.5" className="fill-white stroke-ink" strokeWidth="1.5" />
-              <rect x="31" y="15" width="3" height="9" rx="1.5" className="fill-white stroke-ink" strokeWidth="1.5" />
-              <rect x="36" y="15" width="3" height="9" rx="1.5" className="fill-white stroke-ink" strokeWidth="1.5" />
-              <circle cx="32.5" cy="11" r="5.5" className="fill-white stroke-ink" strokeWidth="2" />
-            </g>
-          </svg>
+          <ToothpasteTubeIcon className="w-10 h-10" />
         </button>
         <LongPressButton
           onLongPress={onParents}

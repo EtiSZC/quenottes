@@ -29,7 +29,7 @@ const ToothpasteQuantity = ({ state, hint, pops, reduced }: ToothpasteQuantityPr
     {/* Soft shadow on the sink */}
     <ellipse cx="160" cy="134" rx="140" ry="5" className="fill-ink" opacity="0.08" />
 
-    {/* Brush: tufted bristles, mint head, tapered rainbow handle (like Brillou's) */}
+    {/* Brush: tufted bristles, mint head, tapered rainbow handle (like the mascot's) */}
     <motion.g
       key={`brush-${pops}`}
       initial={reduced || pops === 0 ? false : { scaleY: 0.94 }}

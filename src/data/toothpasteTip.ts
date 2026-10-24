@@ -8,7 +8,7 @@
 
 export const TIP_TITLE = "Le petit pois";
 
-/** Spoken when the tip opens and when the child taps Brillou / 🔊. */
+/** Spoken when the tip opens and when the child taps the mascot / 🔊. */
 export const TIP_OPEN_LINE = "Un petit pois de dentifrice, pas plus !";
 /** Spoken when the pea lands on the brush. */
 export const TIP_PEA_LINE = "Parfait ! Juste un petit pois.";

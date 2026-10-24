@@ -47,7 +47,7 @@ const Pod = () => (
 
 /**
  * « Le petit pois »: an optional page (never inside the brushing flow) that shows how much
- * toothpaste to use. Brillou says it out loud once on opening, then only when tapped. No score,
+ * toothpaste to use. Quenottes the mascot says it out loud once on opening, then only when tapped. No score,
  * no timer, no red: the oversized blob is just something to compare with.
  */
 const ToothpasteTipScreen = ({ onBack }: ToothpasteTipScreenProps) => {
@@ -140,10 +140,10 @@ const ToothpasteTipScreen = ({ onBack }: ToothpasteTipScreenProps) => {
           <p className="font-display font-semibold text-xl text-ink text-center">{BUBBLE_TEXT[state]}</p>
         </SpeechBubble>
 
-        <button onClick={replay} className="rounded-full" aria-label="Réécouter Brillou">
+        <button onClick={replay} className="rounded-full" aria-label="Réécouter Quenottes">
           <motion.img
             src={mascotImg}
-            alt="Brillou la mascotte"
+            alt="Quenottes la mascotte"
             className="w-28 h-28 drop-shadow-xl"
             animate={reduced ? undefined : { scale: state === "blob" ? 1.08 : 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 14 }}

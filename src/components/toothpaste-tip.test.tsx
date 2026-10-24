@@ -56,10 +56,10 @@ describe("toothpaste tip screen", () => {
     expect(container.querySelector("svg[data-state='pea']")).not.toBeNull();
   });
 
-  it("tapping Brillou repeats what the bubble says", () => {
+  it("tapping the mascot repeats what the bubble says", () => {
     render(<ToothpasteTipScreen onBack={() => {}} />);
     vi.mocked(speak).mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "Réécouter Brillou" }));
+    fireEvent.click(screen.getByRole("button", { name: "Réécouter Quenottes" }));
     expect(speak).toHaveBeenCalledWith(TIP_OPEN_LINE);
   });
 
