@@ -1,17 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import mascotImg from "@/assets/mascot.png";
 import BathroomBackground from "@/components/BathroomBackground";
 import MuteButton from "@/components/MuteButton";
 import SpeechBubble from "@/components/SpeechBubble";
-import ToothpasteQuantity, { type PasteState } from "@/components/illustrations/ToothpasteQuantity";
+import ToothpasteQuantity, { type TipStage } from "@/components/illustrations/ToothpasteQuantity";
 import {
   TIP_ANNOUNCE,
   TIP_FOOTNOTE,
-  TIP_HINT,
   TIP_OPEN_LINE,
   TIP_PEA_LINE,
-  TIP_POD_CAPTION,
+  TIP_SCENE_LABEL,
   TIP_SPIT_LINE,
   TIP_TITLE,
   TIP_TOO_MUCH_BUTTON,
@@ -26,96 +25,89 @@ interface ToothpasteTipScreenProps {
 
 /** How long the oversized blob stays before the pea comes back. */
 const BLOB_MS = 2500;
-/** Pause between « Parfait ! » and the « on crache » line (the first clip lasts about 2 s). */
-const SPIT_DELAY_MS = 2600;
-
-const BUBBLE_TEXT: Record<PasteState, string> = {
-  empty: TIP_OPEN_LINE,
-  pea: TIP_PEA_LINE,
-  blob: TIP_TOO_MUCH_LINE,
-};
-
-/** A green pod with three peas: the real-world reference for « un petit pois ». */
-const Pod = () => (
-  <svg viewBox="0 0 64 28" className="w-16 h-7 shrink-0" aria-hidden>
-    <ellipse cx="32" cy="14" rx="30" ry="11" className="fill-[#8BD35C] stroke-ink" strokeWidth="2.5" />
-    {[18, 32, 46].map((x) => (
-      <circle key={x} cx={x} cy="14" r="6" className="fill-[#B6EC8A] stroke-ink" strokeWidth="2" />
-    ))}
-  </svg>
-);
+/** Pause between the opening line and the squeeze, between the squeeze and the drop, etc. */
+const BEAT_MS = 300;
+const SQUEEZE_MS = 800;
+/** From the start of the drop to the pea touching the bristles (sound + bubble text). */
+const LAND_MS = 450;
+const SETTLE_MS = 250;
 
 /**
  * « Le petit pois »: an optional page (never inside the brushing flow) that shows how much
- * toothpaste to use. Quenottes the mascot says it out loud once on opening, then only when tapped. No score,
- * no timer, no red: the oversized blob is just something to compare with.
+ * toothpaste to use, all by itself and without any touch: the mascot says the headline, the
+ * pink tube slides in and squeezes a pea onto the brush, the mascot confirms and reminds to
+ * spit. Only ← and 🔊 (and « Trop ? » once it is over) can be pressed. No score, timer or red.
  */
 const ToothpasteTipScreen = ({ onBack }: ToothpasteTipScreenProps) => {
   const reduced = useReducedMotion() ?? false;
-  const [state, setState] = useState<PasteState>("empty");
-  const [pops, setPops] = useState(0);
-  const [touched, setTouched] = useState(false);
+  const [stage, setStage] = useState<TipStage>("idle");
+  const [landed, setLanded] = useState(false);
+  const [done, setDone] = useState(false);
+  const [blob, setBlob] = useState(false);
   const timers = useRef<number[]>([]);
-  const spitSaid = useRef(false);
 
-  const clearTimers = useCallback(() => {
-    timers.current.forEach((id) => window.clearTimeout(id));
-    timers.current = [];
-  }, []);
+  const sleep = (ms: number) =>
+    new Promise<void>((resolve) => {
+      timers.current.push(window.setTimeout(resolve, ms));
+    });
 
-  const later = (fn: () => void, ms: number) => {
-    timers.current.push(window.setTimeout(fn, ms));
-  };
-
-  // Say the headline once (the tap that opened this page unlocked the audio); stop on leave.
+  // The whole sequence, driven by the end of each spoken line. Leaving the page cancels it.
   useEffect(() => {
-    speak(TIP_OPEN_LINE);
-    const onHidden = () => {
-      if (document.hidden) {
-        clearTimers();
-        stopSpeaking();
+    let cancelled = false;
+    const live = () => !cancelled;
+    (async () => {
+      if (!reduced) setStage("arrive");
+      await speak(TIP_OPEN_LINE);
+      if (!live()) return;
+      await sleep(BEAT_MS);
+      if (!live()) return;
+      if (reduced) {
+        setStage("drop"); // the pea just fades in
+        await sleep(SETTLE_MS);
+      } else {
+        setStage("squeeze");
+        await sleep(SQUEEZE_MS);
+        if (!live()) return;
+        setStage("drop");
+        await sleep(LAND_MS);
+        if (!live()) return;
+        playPop();
+        await sleep(SETTLE_MS);
       }
+      if (!live()) return;
+      setStage("leave");
+      setLanded(true);
+      await speak(TIP_PEA_LINE);
+      if (!live()) return;
+      await sleep(BEAT_MS);
+      if (!live()) return;
+      await speak(TIP_SPIT_LINE);
+      if (!live()) return;
+      setDone(true);
+    })();
+    const onHidden = () => {
+      if (document.hidden) stopSpeaking();
     };
     document.addEventListener("visibilitychange", onHidden);
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", onHidden);
-      clearTimers();
+      timers.current.forEach((id) => window.clearTimeout(id));
+      timers.current = [];
       stopSpeaking();
     };
-  }, [clearTimers]);
-
-  const tapBrush = () => {
-    clearTimers();
-    setTouched(true);
-    setPops((n) => n + 1);
-    playPop();
-    if (state === "pea") {
-      setState("empty");
-      return;
-    }
-    setState("pea");
-    speak(TIP_PEA_LINE);
-    if (!spitSaid.current) {
-      spitSaid.current = true;
-      later(() => speak(TIP_SPIT_LINE), SPIT_DELAY_MS);
-    }
-  };
+    // The sequence runs once per visit; `reduced` is read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const showTooMuch = () => {
-    clearTimers();
-    setTouched(true);
-    setState("blob");
+    setBlob(true);
     speak(TIP_TOO_MUCH_LINE);
-    later(() => {
-      setPops((n) => n + 1);
-      setState("pea");
-    }, BLOB_MS);
+    timers.current.push(window.setTimeout(() => setBlob(false), BLOB_MS));
   };
 
-  const replay = () => {
-    clearTimers();
-    speak(BUBBLE_TEXT[state]);
-  };
+  const bubble = blob ? TIP_TOO_MUCH_LINE : landed ? TIP_PEA_LINE : TIP_OPEN_LINE;
+  const announce = blob ? TIP_ANNOUNCE.blob : landed ? TIP_ANNOUNCE.pea : TIP_ANNOUNCE.empty;
 
   return (
     <BathroomBackground>
@@ -123,7 +115,6 @@ const ToothpasteTipScreen = ({ onBack }: ToothpasteTipScreenProps) => {
         <div className="w-full max-w-md flex items-center justify-between">
           <button
             onClick={() => {
-              clearTimers();
               stopSpeaking();
               onBack();
             }}
@@ -136,47 +127,39 @@ const ToothpasteTipScreen = ({ onBack }: ToothpasteTipScreenProps) => {
           <MuteButton />
         </div>
 
-        <SpeechBubble tail="bottom" className="mt-1">
-          <p className="font-display font-semibold text-xl text-ink text-center">{BUBBLE_TEXT[state]}</p>
+        <SpeechBubble tail="bottom" className="mt-1 min-h-[86px] flex items-center justify-center">
+          <p className="font-display font-semibold text-xl text-ink text-center">{bubble}</p>
         </SpeechBubble>
 
-        <button onClick={replay} className="rounded-full" aria-label="Réécouter Quenottes">
-          <motion.img
-            src={mascotImg}
-            alt="Quenottes la mascotte"
-            className="w-28 h-28 drop-shadow-xl"
-            animate={reduced ? undefined : { scale: state === "blob" ? 1.08 : 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 14 }}
-          />
-        </button>
+        {/* The mascot is a picture, not a button: nothing to touch on this page except ← and 🔊 */}
+        <motion.img
+          src={mascotImg}
+          alt="Quenottes la mascotte"
+          className="w-28 h-28 drop-shadow-xl select-none pointer-events-none"
+          draggable={false}
+          animate={reduced ? undefined : { scale: blob ? 1.08 : 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 14 }}
+        />
+
+        <div
+          role="img"
+          aria-label={TIP_SCENE_LABEL}
+          className="w-full max-w-md rounded-3xl bg-white border-[3px] border-ink shadow-[0_5px_0_hsl(var(--ink)/0.15)] px-3 py-2 pointer-events-none overflow-hidden"
+        >
+          <ToothpasteQuantity stage={stage} blob={blob} reduced={reduced} />
+        </div>
 
         <button
-          onClick={tapBrush}
-          aria-pressed={state === "pea"}
-          aria-label="Mettre un petit pois de dentifrice sur la brosse"
-          className="w-full max-w-md min-h-40 rounded-3xl bg-white border-[3px] border-ink shadow-[0_5px_0_hsl(var(--ink)/0.15)] px-3 py-4 flex flex-col items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ink/40"
+          onClick={showTooMuch}
+          disabled={!done || blob}
+          className="h-14 min-w-14 px-6 rounded-full bg-white border-[3px] border-ink shadow-[0_4px_0_hsl(var(--ink)/0.15)] font-display font-bold text-xl text-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ink/40 disabled:opacity-50"
         >
-          <ToothpasteQuantity state={state} hint={!touched} pops={pops} reduced={reduced} />
-          <span className="font-display font-semibold text-xl text-ink/80 h-7">{!touched ? TIP_HINT : ""}</span>
+          {TIP_TOO_MUCH_BUTTON}
         </button>
-
-        <div className="w-full max-w-md flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 font-display font-semibold text-xl text-ink">
-            <Pod />
-            <span>= {TIP_POD_CAPTION}</span>
-          </div>
-          <button
-            onClick={showTooMuch}
-            disabled={state === "blob"}
-            className="h-14 min-w-14 px-5 rounded-full bg-white border-[3px] border-ink shadow-[0_4px_0_hsl(var(--ink)/0.15)] font-display font-bold text-xl text-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ink/40 disabled:opacity-60"
-          >
-            {TIP_TOO_MUCH_BUTTON}
-          </button>
-        </div>
 
         <p className="w-full max-w-md text-sm font-body font-semibold text-ink/80 text-center">{TIP_FOOTNOTE}</p>
         <p role="status" aria-live="polite" className="sr-only">
-          {TIP_ANNOUNCE[state]}
+          {announce}
         </p>
       </div>
     </BathroomBackground>

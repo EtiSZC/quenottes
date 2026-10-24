@@ -29,7 +29,7 @@ describe("pre-recorded voice", () => {
   it("plays Lily's clip instead of the device voice", async () => {
     speak(FINISH_LINE);
     await flush();
-    expect(playClip).toHaveBeenCalledWith(expect.stringMatching(/voice\/[0-9a-f]{12}\.mp3$/), expect.any(Function));
+    expect(playClip).toHaveBeenCalledWith(expect.stringMatching(/voice\/[0-9a-f]{12}\.mp3$/), expect.any(Function), expect.any(Function));
     expect(TextToSpeech.speak).not.toHaveBeenCalled();
   });
 

@@ -144,9 +144,15 @@ export function stopClip() {
 /**
  * Play a clip, cutting off the previous one. `stillWanted` is checked once the
  * clip is ready so a late load never speaks over a newer request.
+ * `onEnded` is called once when the clip finishes on its own (not when it is cut off);
+ * a safety timer fires it too if the audio context stalls (call, tab throttling).
  * Resolves false if the clip couldn't be played (caller can fall back).
  */
-export async function playClip(url: string, stillWanted: () => boolean = () => true): Promise<boolean> {
+export async function playClip(
+  url: string,
+  stillWanted: () => boolean = () => true,
+  onEnded?: () => void,
+): Promise<boolean> {
   if (muted) return true;
   const c = getCtx();
   if (!c) return false;
@@ -157,12 +163,17 @@ export async function playClip(url: string, stillWanted: () => boolean = () => t
   const source = c.createBufferSource();
   source.buffer = buffer;
   source.connect(c.destination);
-  source.onended = () => {
+  let safety = 0;
+  const finish = () => {
+    window.clearTimeout(safety);
     if (currentClip === source) {
       currentClip = null;
       notifyClip(false);
+      onEnded?.();
     }
   };
+  source.onended = finish;
+  safety = window.setTimeout(finish, (buffer.duration + 1.5) * 1000);
   source.start();
   currentClip = source;
   notifyClip(true);

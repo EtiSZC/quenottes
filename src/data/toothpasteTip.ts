@@ -8,23 +8,22 @@
 
 export const TIP_TITLE = "Le petit pois";
 
-/** Spoken when the tip opens and when the child taps the mascot / 🔊. */
+/** Spoken when the tip opens. */
 export const TIP_OPEN_LINE = "Un petit pois de dentifrice, pas plus !";
-/** Spoken when the pea lands on the brush. */
+/** Spoken once the pea has landed on the brush. */
 export const TIP_PEA_LINE = "Parfait ! Juste un petit pois.";
 /** Spoken with the oversized blob. */
 export const TIP_TOO_MUCH_LINE = "Oh là là, trop ! Un petit pois suffit.";
-/** Spoken once, after the first pea: « don't rinse » in positive form. */
+/** Spoken after the pea line: « don't rinse » in positive form. */
 export const TIP_SPIT_LINE = "Après, on crache, et c'est tout !";
 
 export const TIP_VOICE_LINES: string[] = [TIP_OPEN_LINE, TIP_PEA_LINE, TIP_TOO_MUCH_LINE, TIP_SPIT_LINE];
 
-export const TIP_HINT = "Touche la brosse";
-export const TIP_POD_CAPTION = "un petit pois";
 export const TIP_TOO_MUCH_BUTTON = "Trop ?";
 export const TIP_FOOTNOTE = "On crache, on ne rince pas. Un adulte aide jusqu'à 6 ans.";
 
-/** Screen-reader announcements for the three states of the brush. */
+/** What a screen reader hears: the whole scene, then each change. */
+export const TIP_SCENE_LABEL = "Un tube de dentifrice dépose un petit pois sur une brosse à dents";
 export const TIP_ANNOUNCE = {
   empty: "",
   pea: "Un petit pois sur la brosse",
