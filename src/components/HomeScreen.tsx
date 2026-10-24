@@ -14,12 +14,14 @@ import { playStartSound, unlockAudio } from "@/lib/sounds";
 interface HomeScreenProps {
   onStart: () => void;
   onAlbum: () => void;
+  /** Opens the « petit pois » toothpaste tip. */
+  onTip: () => void;
   /** Change who is brushing (shown with 2+ profiles). */
   onSwitch: () => void;
   onParents: () => void;
 }
 
-const HomeScreen = ({ onStart, onAlbum, onSwitch, onParents }: HomeScreenProps) => {
+const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreenProps) => {
   // Read once per visit to the home screen (the history only changes after a session).
   const { kids, multiProfile } = useMemo(() => {
     const now = new Date();
@@ -46,6 +48,11 @@ const HomeScreen = ({ onStart, onAlbum, onSwitch, onParents }: HomeScreenProps) 
     unlockAudio(); // inside the tap: allows the timer-driven chimes on iOS
     playStartSound();
     onStart();
+  };
+
+  const handleTip = () => {
+    unlockAudio(); // the tip speaks as soon as it opens
+    onTip();
   };
 
   return (
@@ -168,6 +175,22 @@ const HomeScreen = ({ onStart, onAlbum, onSwitch, onParents }: HomeScreenProps) 
             </Button>
           </div>
         </motion.div>
+        <button
+          onClick={handleTip}
+          className="absolute bottom-5 left-4 w-14 h-14 rounded-full bg-white/80 hover:bg-white border-[3px] border-ink/15 shadow-md flex items-center justify-center"
+          aria-label="Le petit pois de dentifrice"
+        >
+          <svg viewBox="0 0 48 48" className="w-9 h-9" aria-hidden>
+            <g transform="rotate(-30 24 24)">
+              <rect x="4" y="27" width="22" height="7" rx="3.5" className="fill-bubblegum stroke-ink" strokeWidth="2" />
+              <rect x="22" y="23" width="20" height="14" rx="4" className="fill-mint stroke-ink" strokeWidth="2" />
+              <rect x="26" y="15" width="3" height="9" rx="1.5" className="fill-white stroke-ink" strokeWidth="1.5" />
+              <rect x="31" y="15" width="3" height="9" rx="1.5" className="fill-white stroke-ink" strokeWidth="1.5" />
+              <rect x="36" y="15" width="3" height="9" rx="1.5" className="fill-white stroke-ink" strokeWidth="1.5" />
+              <circle cx="32.5" cy="11" r="5.5" className="fill-white stroke-ink" strokeWidth="2" />
+            </g>
+          </svg>
+        </button>
         <LongPressButton
           onLongPress={onParents}
           label="Espace parents : maintenir 2 secondes"

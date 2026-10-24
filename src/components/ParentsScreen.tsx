@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { suggestSameChild } from "@/lib/sync";
 import SameChildCard from "@/components/SameChildCard";
+import { PARENT_TIP } from "@/data/toothpasteTip";
 
 interface ParentsScreenProps {
   onBack: () => void;
@@ -152,6 +153,19 @@ const ParentsScreen = ({ onBack, onSync }: ParentsScreenProps) => {
             Synchroniser avec un autre téléphone
           </Button>
         </div>
+
+        <section
+          aria-label="Dentifrice : les repères"
+          className="w-full max-w-md bg-white border-[3px] border-ink rounded-3xl p-4 flex flex-col gap-2 shadow-[0_4px_0_hsl(var(--ink)/0.15)]"
+        >
+          <h2 className="font-display font-bold text-lg text-ink">{PARENT_TIP.title}</h2>
+          {PARENT_TIP.lines.map((line) => (
+            <p key={line} className="text-sm font-body font-semibold text-ink/90">
+              {line}
+            </p>
+          ))}
+          <p className="text-xs font-body font-semibold text-muted-foreground">{PARENT_TIP.sources}</p>
+        </section>
 
         <p className="w-full max-w-md text-xs font-body font-semibold text-muted-foreground text-center">
           Voix de Brillou : elevenlabs.io

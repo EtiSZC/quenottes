@@ -35,7 +35,7 @@ describe("profile screens", () => {
     expect(screen.getByText("Quenottes")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Qui se brosse les dents ?" })).toBeInTheDocument();
     unmount();
-    render(<HomeScreen onStart={() => {}} onAlbum={() => {}} onSwitch={() => {}} onParents={() => {}} />);
+    render(<HomeScreen onStart={() => {}} onAlbum={() => {}} onTip={() => {}} onSwitch={() => {}} onParents={() => {}} />);
     expect(screen.getByRole("heading", { name: "Quenottes" })).toBeInTheDocument();
   });
 
@@ -89,7 +89,7 @@ describe("profile screens", () => {
   it("home: shows who is brushing once there are two profiles", () => {
     const lea = addProfile("Léa", "🦊")!;
     setActiveProfiles([lea.id]);
-    render(<HomeScreen onStart={() => {}} onAlbum={() => {}} onSwitch={() => {}} onParents={() => {}} />);
+    render(<HomeScreen onStart={() => {}} onAlbum={() => {}} onTip={() => {}} onSwitch={() => {}} onParents={() => {}} />);
     expect(screen.getByRole("button", { name: /Changer d'enfant \(actuellement Léa\)/ })).toBeInTheDocument();
     expect(screen.getByText(/On brosse ensemble, Léa/)).toBeInTheDocument(); // (getByText normalizes the NBSP in the DOM, not in the query)
   });
