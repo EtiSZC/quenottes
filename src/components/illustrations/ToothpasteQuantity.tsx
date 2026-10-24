@@ -14,7 +14,7 @@ interface ToothpasteQuantityProps {
 // SVG elements scale around their own centre.
 const CENTER = { transformBox: "fill-box", transformOrigin: "center" } as const;
 
-const PEA = { x: 230, y: 40 };
+const PEA = { x: 246, y: 45 };
 const SPARKS = Array.from({ length: 6 }, (_, i) => {
   const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
   return { x: Math.cos(angle) * 34, y: Math.sin(angle) * 34 };
@@ -26,7 +26,10 @@ const SPARKS = Array.from({ length: 6 }, (_, i) => {
  */
 const ToothpasteQuantity = ({ state, hint, pops, reduced }: ToothpasteQuantityProps) => (
   <svg viewBox="0 0 320 142" className="w-full h-auto" aria-hidden data-state={state}>
-    {/* Brush: bubblegum handle, mint head, white bristles */}
+    {/* Soft shadow on the sink */}
+    <ellipse cx="160" cy="134" rx="140" ry="5" className="fill-ink" opacity="0.08" />
+
+    {/* Brush: tufted bristles, mint head, tapered rainbow handle (like Brillou's) */}
     <motion.g
       key={`brush-${pops}`}
       initial={reduced || pops === 0 ? false : { scaleY: 0.94 }}
@@ -34,11 +37,48 @@ const ToothpasteQuantity = ({ state, hint, pops, reduced }: ToothpasteQuantityPr
       transition={{ type: "spring", stiffness: 400, damping: 14 }}
       style={{ transformBox: "fill-box", transformOrigin: "50% 100%" }}
     >
-      <rect x="18" y="94" width="160" height="28" rx="14" className="fill-bubblegum stroke-ink" strokeWidth="3" />
-      <rect x="165" y="80" width="130" height="56" rx="16" className="fill-mint stroke-ink" strokeWidth="3" />
-      {Array.from({ length: 9 }, (_, i) => (
-        <rect key={i} x={176 + i * 13} y="52" width="9" height="32" rx="4.5" className="fill-white stroke-ink" strokeWidth="2" />
-      ))}
+      {/* Bristle tufts (drawn first: the head covers their base) */}
+      {Array.from({ length: 7 }, (_, i) => {
+        const top = i === 0 || i === 6 ? 62 : i === 1 || i === 5 ? 58 : 55;
+        return (
+          <rect
+            key={i}
+            x={203 + i * 13.5}
+            y={top}
+            width="11"
+            height={96 - top}
+            rx="5.5"
+            className={i % 2 === 0 ? "fill-white stroke-ink" : "fill-[#CDEBFF] stroke-ink"}
+            strokeWidth="2.5"
+          />
+        );
+      })}
+
+      {/* Head */}
+      <rect x="190" y="84" width="112" height="38" rx="19" className="fill-mint stroke-ink" strokeWidth="3" />
+      <path d="M206 94 H286" className="stroke-white" strokeWidth="4" strokeLinecap="round" opacity="0.55" />
+
+      {/* Handle: wide grip tapering into a slim neck */}
+      <clipPath id="brush-handle">
+        <path d="M30 87 H120 C150 87 160 97 192 97 V111 C160 111 150 121 120 121 H30 A17 17 0 0 1 30 87 Z" />
+      </clipPath>
+      <path
+        d="M30 87 H120 C150 87 160 97 192 97 V111 C160 111 150 121 120 121 H30 A17 17 0 0 1 30 87 Z"
+        className="fill-bubblegum"
+      />
+      <g clipPath="url(#brush-handle)">
+        <rect x="58" y="80" width="12" height="46" className="fill-sunshine" />
+        <rect x="76" y="80" width="12" height="46" className="fill-white" />
+        <rect x="94" y="80" width="12" height="46" className="fill-[#7CCBFF]" />
+        <path d="M24 94 H112" className="stroke-white" strokeWidth="4" strokeLinecap="round" opacity="0.5" />
+      </g>
+      <path
+        d="M30 87 H120 C150 87 160 97 192 97 V111 C160 111 150 121 120 121 H30 A17 17 0 0 1 30 87 Z"
+        fill="none"
+        className="stroke-ink"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
     </motion.g>
 
     {hint && state === "empty" && (
@@ -82,9 +122,9 @@ const ToothpasteQuantity = ({ state, hint, pops, reduced }: ToothpasteQuantityPr
           exit={{ opacity: 0 }}
           transition={reduced ? { duration: 0.15 } : { duration: 0.5, rotate: { duration: 1.4, repeat: Infinity } }}
         >
-          <ellipse cx="228" cy="52" rx="84" ry="20" className="fill-white stroke-ink" strokeWidth="3" />
-          <path d="M292 56 q8 14 0 26 q-8 -12 0 -26z" className="fill-white stroke-ink" strokeWidth="3" strokeLinejoin="round" />
-          <ellipse cx="206" cy="46" rx="22" ry="5" className="fill-mint" opacity="0.5" />
+          <ellipse cx="244" cy="52" rx="72" ry="20" className="fill-white stroke-ink" strokeWidth="3" />
+          <path d="M272 68 C264 80 264 91 272 91 C280 91 280 80 272 68 Z" className="fill-white stroke-ink" strokeWidth="3" strokeLinejoin="round" />
+          <ellipse cx="222" cy="46" rx="22" ry="5" className="fill-mint" opacity="0.5" />
         </motion.g>
       )}
     </AnimatePresence>
