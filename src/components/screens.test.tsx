@@ -31,7 +31,7 @@ describe("retention screens", () => {
 
   it("home: shows the week calendar and the album with its sticker count", () => {
     recordSession(new Date());
-    render(<HomeScreen onStart={() => {}} onAlbum={() => {}} onSwitch={() => {}} onParents={() => {}} />);
+    render(<HomeScreen onStart={() => {}} onAlbum={() => {}} onTip={() => {}} onSwitch={() => {}} onParents={() => {}} />);
     expect(screen.getByRole("img", { name: /Cette semaine : 1 brossage/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Mon album : 1 autocollants sur 35/ })).toBeInTheDocument();
   });

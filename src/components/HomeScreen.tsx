@@ -7,6 +7,7 @@ import BathroomBackground from "@/components/BathroomBackground";
 import MuteButton from "@/components/MuteButton";
 import SpeechBubble from "@/components/SpeechBubble";
 import WeekCalendar from "@/components/WeekCalendar";
+import ToothpasteTubeIcon from "@/components/illustrations/ToothpasteTubeIcon";
 import LongPressButton from "@/components/LongPressButton";
 import { ALL_STICKERS, displayName, getActiveProfiles, getProfile, listProfiles, isHalloweenSeason, streakOf, weekOf } from "@/lib/progress";
 import { playStartSound, unlockAudio } from "@/lib/sounds";
@@ -14,12 +15,14 @@ import { playStartSound, unlockAudio } from "@/lib/sounds";
 interface HomeScreenProps {
   onStart: () => void;
   onAlbum: () => void;
+  /** Opens the « petit pois » toothpaste tip. */
+  onTip: () => void;
   /** Change who is brushing (shown with 2+ profiles). */
   onSwitch: () => void;
   onParents: () => void;
 }
 
-const HomeScreen = ({ onStart, onAlbum, onSwitch, onParents }: HomeScreenProps) => {
+const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreenProps) => {
   // Read once per visit to the home screen (the history only changes after a session).
   const { kids, multiProfile } = useMemo(() => {
     const now = new Date();
@@ -46,6 +49,11 @@ const HomeScreen = ({ onStart, onAlbum, onSwitch, onParents }: HomeScreenProps) 
     unlockAudio(); // inside the tap: allows the timer-driven chimes on iOS
     playStartSound();
     onStart();
+  };
+
+  const handleTip = () => {
+    unlockAudio(); // the tip speaks as soon as it opens
+    onTip();
   };
 
   return (
@@ -168,6 +176,13 @@ const HomeScreen = ({ onStart, onAlbum, onSwitch, onParents }: HomeScreenProps) 
             </Button>
           </div>
         </motion.div>
+        <button
+          onClick={handleTip}
+          className="absolute bottom-5 left-4 w-14 h-14 rounded-full bg-white/80 hover:bg-white border-[3px] border-ink/15 shadow-md flex items-center justify-center"
+          aria-label="Le petit pois de dentifrice"
+        >
+          <ToothpasteTubeIcon className="w-10 h-10" />
+        </button>
         <LongPressButton
           onLongPress={onParents}
           label="Espace parents : maintenir 2 secondes"
