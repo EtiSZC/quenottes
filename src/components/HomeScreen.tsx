@@ -46,7 +46,7 @@ const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreen
       : "On brosse ensemble\u00A0?";
 
   const handleStart = () => {
-    unlockAudio(); // inside the tap: allows the timer-driven chimes on iOS
+    unlockAudio(true); // inside the tap: fresh context + media session, so guidance is never mute on iOS
     playStartSound();
     onStart();
   };

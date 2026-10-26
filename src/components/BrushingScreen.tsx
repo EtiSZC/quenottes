@@ -134,7 +134,7 @@ const BrushingScreen = ({ onComplete, onCancel }: BrushingScreenProps) => {
   useEffect(() => () => stopMusic(), []);
 
   const handleResume = () => {
-    unlockAudio(); // the context may have been suspended while in background
+    unlockAudio(true); // the context may have been suspended while in background
     setPaused(false);
   };
 

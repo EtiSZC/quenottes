@@ -90,6 +90,16 @@ describe("audio context recovery", () => {
     expect(FakeContext.all[1].state).toBe("running");
   });
 
+  it("forced unlock (start of a brushing) starts from a new context even if the old one says running", async () => {
+    const unlockAudio = await install(() => new FakeContext("running"));
+    unlockAudio();
+    const old = FakeContext.all[0];
+    unlockAudio(true);
+    expect(old.close).toHaveBeenCalled();
+    expect(FakeContext.all).toHaveLength(2);
+    expect(FakeContext.all[1].state).toBe("running");
+  });
+
   it("wakes the context when the page becomes visible again", async () => {
     const unlockAudio = await install(() => new FakeContext("running"));
     unlockAudio();

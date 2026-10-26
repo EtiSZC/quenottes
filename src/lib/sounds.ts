@@ -53,8 +53,34 @@ function getCtx(): AudioContext | null {
 /** The shared context (created/resumed on demand), or null without Web Audio. */
 export const getAudioContext = (): AudioContext | null => getCtx();
 
-/** Call from a user gesture (tap) so later, timer-driven sounds are allowed on iOS. */
-export function unlockAudio() {
+/** One second of silence as a WAV data URI: playing it in a tap re-opens iOS's media audio session. */
+function silentWavUri(): string {
+  const rate = 8000;
+  const bytes = new Uint8Array(44 + rate);
+  const view = new DataView(bytes.buffer);
+  const text = (at: number, value: string) => [...value].forEach((ch, i) => view.setUint8(at + i, ch.charCodeAt(0)));
+  text(0, "RIFF");
+  view.setUint32(4, 36 + rate, true);
+  text(8, "WAVEfmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, rate, true);
+  view.setUint32(28, rate, true);
+  view.setUint16(32, 1, true);
+  view.setUint16(34, 8, true);
+  text(36, "data");
+  view.setUint32(40, rate, true);
+  bytes.fill(128, 44); // 8-bit silence
+  return `data:audio/wav;base64,${btoa(String.fromCharCode(...bytes))}`;
+}
+
+/**
+ * Call from a user gesture (tap) so later, timer-driven sounds are allowed on iOS.
+ * `force` (the start of a brushing): always start from a brand-new context and re-open the
+ * media session, because iOS can leave the old one reporting "running" while it is mute.
+ */
+export function unlockAudio(force = false) {
   // iPhone (Safari 16.4+/17): play like a media app, so the silent switch doesn't mute
   // Lily and the music. No-op where the Audio Session API doesn't exist (Android, desktop).
   const audioSession = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
@@ -68,7 +94,7 @@ export function unlockAudio() {
   // After a few idle minutes iOS leaves the context "suspended" / "interrupted", and its resume()
   // may never settle: replace it inside this tap with a fresh one (decoded clips are plain
   // AudioBuffers, they keep working). Whatever was playing on the old context is cut.
-  if (ctx && !isRunning(ctx)) {
+  if (ctx && (force || !isRunning(ctx))) {
     const stale = ctx;
     stopClip();
     ctx = null;
@@ -82,6 +108,15 @@ export function unlockAudio() {
   source.buffer = buffer;
   source.connect(c.destination);
   source.start(0);
+  if (force && typeof Audio !== "undefined") {
+    try {
+      const silence = new Audio(silentWavUri());
+      silence.volume = 0.01;
+      void silence.play()?.catch(() => {});
+    } catch {
+      // No media element support: the Web Audio unlock above still applies.
+    }
+  }
 }
 
 export function isMuted() {
