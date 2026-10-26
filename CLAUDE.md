@@ -103,7 +103,7 @@ React 18 + TypeScript, Vite 5, Tailwind 3 + shadcn/ui (only `button`, `toast`, `
 - `src/components/MuteButton.tsx`, `SpeechBubble.tsx` — small shared UI.
 - `src/components/ui/button.tsx` — candy 3D buttons (solid darker edge that collapses on press). Variants set colours only, sizes set dimensions.
 - `src/data/brushingZones.ts` — 8 zones, each with `phases[]` (`view`: front / inside / side / top, duration, instruction). Molar zones = side 11 s + top 12 s. Hue family upper 200 / lower 25. Durations sum to 180 s. Instructions use a non-breaking space before "!".
-- `src/lib/sounds.ts` — WebAudio synthesized sounds on one shared `AudioContext`; `unlockAudio()` must be called inside a user tap (iOS); mute persisted in localStorage.
+- `src/lib/sounds.ts` — WebAudio synthesized sounds on one shared `AudioContext`; `unlockAudio()` must be called inside a user tap (iOS); mute persisted in localStorage. **Audio recovery (2026-10-26):** on iPhone (every browser there is WebKit) the shared context goes `suspended` / `interrupted` after a few idle minutes and its `resume()` may never settle, so brushing started silent until the app was killed. `getCtx()` now treats any state ≠ `running` as stale; `unlockAudio()` (inside the tap) closes a non-running context and creates a fresh one (decoded clips are plain `AudioBuffer`s and survive); pointerdown / touchend / keydown / `visibilitychange` re-resume it. Tests simulate an interrupted context (`FakeContext`). Not yet confirmed on a real iPhone.
 - `src/hooks/use-wake-lock.ts` — Screen Wake Lock, re-requested when the page becomes visible.
 - `src/index.css` — palette tokens (mint, bubblegum, sunshine, ink, tile), also exposed as Tailwind colours; `.bubble-bath`, `.bubble` (+ `.bubble-sway/-pop/-wobble/-film/-rim/-shine`), `.sticker-title`, squash-and-stretch `.mascot-bounce`, `.breathe`.
 
@@ -135,6 +135,7 @@ React 18 + TypeScript, Vite 5, Tailwind 3 + shadcn/ui (only `button`, `toast`, `
 | `v0.9-halloween` | `main` @ merge of the PWA + sync fix + Halloween stickers (2026-10-21), validated on two phones. APK: `releases/brosse-et-brille-v0.9-debug.apk`. |
 | `v0.10-quenottes` | `main` @ `96e63f7` (2026-10-24): Quenottes rename, « Bain moussant » background, app at /quenottes/, website repo `EtiSZC/quenottes-site` on quenottes.site. Last state before the tips (phase 11). |
 | `v0.11-conseils` | `main` after the merge of phase 11 (2026-10-24): « Le petit pois » toothpaste tip, live on GitHub Pages. APK: `releases/quenottes-v0.11-debug.apk`. |
+| `v0.11.1-pre-audiofix` | `main` @ `ce45673` (2026-10-26): last state **before** the audio-context recovery fix. Roll back with `git revert <fix commit>` or `git switch -c restore-v0.11 v0.11.1-pre-audiofix`. |
 | `v0.8-sync` | Two-phone QR sync on top of v0.7 (union merge + no-loss safety net). APK: `releases/brosse-et-brille-v0.8-debug.apk`. Validated on the Galaxy A55 on 2026-10-11. Last version before the PWA / GitHub Pages work. |
 
 To go back to a restore point:

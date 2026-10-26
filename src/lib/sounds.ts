@@ -16,7 +16,27 @@ function readMuted(): boolean {
   }
 }
 
+// Safari (hence every browser on iPhone, Chrome included) also reports "interrupted" after the page
+// was idle or in the background: the type below only knows "suspended" | "running" | "closed".
+const isRunning = (c: AudioContext) => (c.state as string) === "running";
+
+let wakeListenersInstalled = false;
+
+/** A context that stopped running can only be resumed by a tap or when the page comes back. */
+function installWakeListeners() {
+  if (wakeListenersInstalled) return;
+  wakeListenersInstalled = true;
+  const wake = () => {
+    if (ctx && !isRunning(ctx) && ctx.state !== "closed") ctx.resume().catch(() => {});
+  };
+  ["pointerdown", "touchend", "keydown"].forEach((type) => document.addEventListener(type, wake, true));
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) wake();
+  });
+}
+
 function getCtx(): AudioContext | null {
+  if (ctx && ctx.state === "closed") ctx = null;
   if (!ctx) {
     // Older Safari only exposes the prefixed constructor.
     const AudioCtor =
@@ -24,8 +44,9 @@ function getCtx(): AudioContext | null {
       (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtor) return null;
     ctx = new AudioCtor();
+    installWakeListeners();
   }
-  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+  if (!isRunning(ctx)) ctx.resume().catch(() => {});
   return ctx;
 }
 
@@ -43,6 +64,15 @@ export function unlockAudio() {
     } catch {
       // Not allowed in this context: keep the default behaviour.
     }
+  }
+  // After a few idle minutes iOS leaves the context "suspended" / "interrupted", and its resume()
+  // may never settle: replace it inside this tap with a fresh one (decoded clips are plain
+  // AudioBuffers, they keep working). Whatever was playing on the old context is cut.
+  if (ctx && !isRunning(ctx)) {
+    const stale = ctx;
+    stopClip();
+    ctx = null;
+    stale.close().catch(() => {});
   }
   const c = getCtx();
   if (!c) return;
