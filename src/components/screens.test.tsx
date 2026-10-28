@@ -83,13 +83,20 @@ describe("retention screens", () => {
     expect(screen.getByLabelText("1 autocollants sur 20")).toBeInTheDocument();
   });
 
-  it("album: in November the whole autumn grid is shown, every box", () => {
+  it("album: in November the autumn grid shows 20 boxes, counted out of 20", () => {
     recordSession(new Date(2026, 10, 4, 8), undefined, () => 0);
     render(<StickerAlbum onBack={() => {}} now={new Date(2026, 10, 4)} />);
     expect(screen.getByRole("region", { name: "Automne en forêt 2026" })).toBeInTheDocument();
-    expect(screen.getByText(`1/${AUTUMN_STICKERS.length}`)).toBeInTheDocument();
+    expect(screen.getByLabelText("1 sur 20")).toBeInTheDocument();
     expect(screen.getByText(/Jusqu'au 30 novembre/)).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Autocollant à gagner")).toHaveLength(AUTUMN_STICKERS.length - 1);
+    expect(screen.getAllByLabelText("Autocollant à gagner")).toHaveLength(19);
+  });
+
+  it("album: once the 20 boxes are full a row of 4 more appears, counted out of 24", () => {
+    for (let i = 0; i < 20; i++) recordSession(new Date(2026, 10, 3 + Math.floor(i / 2), i % 2 ? 20 : 8), undefined, () => 0);
+    render(<StickerAlbum onBack={() => {}} now={new Date(2026, 10, 13)} />);
+    expect(screen.getByLabelText("20 sur 24")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Autocollant à gagner")).toHaveLength(4);
   });
 
   it("celebration: a Halloween sticker is labelled as such", () => {

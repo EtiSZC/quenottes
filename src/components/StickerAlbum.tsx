@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import BathroomBackground from "@/components/BathroomBackground";
-import { albumPages, displayName, getActiveProfiles, getProfile, listProfiles, type AlbumPage } from "@/lib/progress";
+import { albumPages, displayName, getActiveProfiles, getProfile, listProfiles, type AlbumPage, type Sticker } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 
 interface StickerAlbumProps {
@@ -53,20 +53,23 @@ const HINT: Partial<Record<Look, string>> = {
   autumn: "Jusqu'au 30 novembre\u00A0!",
 };
 
-const Grid = ({ page, look }: { page: AlbumPage; look: Look }) => (
-  <ul className="grid grid-cols-4 gap-3">
-    {page.stickers.map((s, i) => {
-      const has = page.earned.has(s.id);
-      return (
+const Grid = ({ page, look }: { page: AlbumPage; look: Look }) => {
+  // A long grid (« Automne en forêt ») fills its boxes in the order the stickers were won.
+  const cells: (Sticker | null)[] = page.slotted
+    ? Array.from({ length: page.total }, (_, i) => page.stickers.find((s) => s.id === page.earnedOrder[i]) ?? null)
+    : page.stickers.map((s) => (page.earned.has(s.id) ? s : null));
+  return (
+    <ul className="grid grid-cols-4 gap-3">
+      {cells.map((s, i) => (
         <motion.li
-          key={s.id}
+          key={s?.id ?? `empty-${i}`}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: Math.min(i, 20) * 0.02 }}
-          className={cn("aspect-square rounded-2xl flex flex-col items-center justify-center gap-0.5", has ? LOOK[look].has : LOOK[look].missing)}
-          aria-label={has ? s.name : "Autocollant à gagner"}
+          className={cn("aspect-square rounded-2xl flex flex-col items-center justify-center gap-0.5", s ? LOOK[look].has : LOOK[look].missing)}
+          aria-label={s ? s.name : "Autocollant à gagner"}
         >
-          {has ? (
+          {s ? (
             <>
               <span className="text-4xl leading-none">{s.emoji}</span>
               <span className="text-[11px] leading-tight text-center font-body font-semibold text-ink/70">{s.name}</span>
@@ -77,10 +80,10 @@ const Grid = ({ page, look }: { page: AlbumPage; look: Look }) => (
             <span className="text-3xl leading-none opacity-30 grayscale">{PLACEHOLDER[look]}</span>
           )}
         </motion.li>
-      );
-    })}
-  </ul>
-);
+      ))}
+    </ul>
+  );
+};
 
 /**
  * The sticker collection. The grid being played now is open at the top with every box; all the

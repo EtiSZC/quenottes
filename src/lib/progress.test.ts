@@ -13,6 +13,7 @@ import {
   migrateStickerIds,
   recordSession,
   slotOf,
+  visibleCells,
   streakOf,
   weekOf,
   type Session,
@@ -182,10 +183,26 @@ describe("album pages", () => {
       ["classic", false],
       ["halloween-2026", false],
     ]);
-    expect(pages[0]).toMatchObject({ title: "Automne en forêt 2026", won: 0, total: 56 });
+    expect(pages[0]).toMatchObject({ title: "Automne en forêt 2026", won: 0, total: 20, size: 56 });
     expect(pages[1].note).toBe("Tous gagnés\u00A0! 🎉");
     expect(pages[2]).toMatchObject({ title: "Halloween 2026", won: 8, total: 15, current: false });
     expect(pages[2].note).toContain("octobre 2027");
+  });
+
+  it("a long grid shows 20 boxes, then one more row each time they are all full", () => {
+    const cases: [number, number][] = [[0, 20], [9, 20], [19, 20], [20, 24], [23, 24], [24, 28], [51, 52], [55, 56], [56, 56]];
+    for (const [won, boxes] of cases) expect(visibleCells(won, 56)).toBe(boxes);
+    expect(visibleCells(8, 15)).toBe(15); // short grids always show every box
+    expect(visibleCells(0, 20)).toBe(20);
+  });
+
+  it("the autumn grid follows the winning order and grows with the stickers won", () => {
+    const stickers = (n: number) => AUTUMN_STICKERS.slice(10, 10 + n).map((s) => editionId(s.id, 2026));
+    const nine = albumPages(stickers(9), new Date(2026, 10, 7))[0];
+    expect(nine).toMatchObject({ key: "autumn-2026", slotted: true, won: 9, total: 20 });
+    expect(nine.earnedOrder).toEqual(AUTUMN_STICKERS.slice(10, 19).map((s) => s.id));
+    expect(albumPages(stickers(20), new Date(2026, 10, 7))[0]).toMatchObject({ won: 20, total: 24, complete: false });
+    expect(albumPages(AUTUMN_STICKERS.map((s) => editionId(s.id, 2026)), new Date(2026, 10, 7)).find((p) => p.key === "autumn-2026")).toMatchObject({ won: 56, total: 56, complete: true });
   });
 
   it("an unfinished classics grid stays open when no season is running", () => {

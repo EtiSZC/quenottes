@@ -209,6 +209,16 @@ export function migrateStickerIds(ids: string[]): string[] {
   return [...new Set(ids.map((id) => (halloween.has(id) ? editionId(id, FIRST_EDITION_YEAR) : id)))];
 }
 
+/** A grid longer than this shows this many boxes at first, then one more row once they are all full. */
+export const GRID_START = 20;
+const GRID_ROW = 4;
+
+/** Boxes shown for a grid of `size` stickers with `won` of them won. */
+export function visibleCells(won: number, size: number): number {
+  if (size <= GRID_START) return size;
+  return won < GRID_START ? GRID_START : Math.min(size, GRID_ROW * (Math.floor(won / GRID_ROW) + 1));
+}
+
 export interface AlbumPage {
   key: string;
   /** null = the classics. */
@@ -219,8 +229,15 @@ export interface AlbumPage {
   stickers: readonly Sticker[];
   /** Base ids won in this edition. */
   earned: ReadonlySet<string>;
+  /** The same ids in the order they were won: a long grid fills its boxes in that order. */
+  earnedOrder: string[];
+  /** A grid longer than 20 stickers (« Automne en forêt »): boxes follow the winning order, not the sticker. */
+  slotted: boolean;
   won: number;
+  /** Boxes shown (what counters divide by): every sticker, or 20 + a row each time they are all full. */
   total: number;
+  /** How many stickers the edition holds. */
+  size: number;
   complete: boolean;
   /** The grid being played now (open); every other page is folded at the bottom. */
   current: boolean;
@@ -238,7 +255,8 @@ export function albumPages(stored: string[], now = new Date()): AlbumPage[] {
   const mine = stored.map(splitSticker);
   const build = (season: Season | null, y: number | null): AlbumPage => {
     const stickers = season ? season.stickers : STICKERS;
-    const earned = new Set(mine.filter((m) => m.year === y && stickers.some((s) => s.id === m.id)).map((m) => m.id));
+    const earnedOrder = [...new Set(mine.filter((m) => m.year === y && stickers.some((s) => s.id === m.id)).map((m) => m.id))];
+    const earned = new Set(earnedOrder);
     return {
       key: season ? `${season.id}-${y}` : "classic",
       season,
@@ -246,8 +264,11 @@ export function albumPages(stored: string[], now = new Date()): AlbumPage[] {
       title: season ? `${season.title} ${y}` : "Mes autocollants",
       stickers,
       earned,
+      earnedOrder,
+      slotted: stickers.length > GRID_START,
       won: earned.size,
-      total: stickers.length,
+      total: visibleCells(earned.size, stickers.length),
+      size: stickers.length,
       complete: earned.size >= stickers.length,
       current: false,
       note: "",
