@@ -219,6 +219,32 @@ export function visibleCells(won: number, size: number): number {
   return won < GRID_START ? GRID_START : Math.min(size, GRID_ROW * (Math.floor(won / GRID_ROW) + 1));
 }
 
+/**
+ * Where each won sticker sits in a long grid: the first 20 land in scattered boxes (a fixed shuffle
+ * per `seed`, so the same child always sees the same picture), the next ones fill the added rows in
+ * order. Returns one entry per box (`total`), holding the index in `won` or null for an empty box.
+ */
+export function placeInGrid(wonCount: number, total: number, seed: string): (number | null)[] {
+  // Seeded shuffle of the first 20 boxes (FNV-1a hash → mulberry32).
+  let h = 2166136261;
+  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  let a = h >>> 0;
+  const random = () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const scatter = Array.from({ length: Math.min(GRID_START, total) }, (_, i) => i);
+  for (let i = scatter.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [scatter[i], scatter[j]] = [scatter[j], scatter[i]];
+  }
+  const boxes: (number | null)[] = Array.from({ length: total }, () => null);
+  for (let k = 0; k < Math.min(wonCount, total); k++) boxes[k < scatter.length ? scatter[k] : k] = k;
+  return boxes;
+}
+
 export interface AlbumPage {
   key: string;
   /** null = the classics. */

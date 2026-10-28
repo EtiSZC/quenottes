@@ -10,6 +10,7 @@ import {
   isAutumnSeason,
   isHalloweenSeason,
   loadProgress,
+  placeInGrid,
   migrateStickerIds,
   recordSession,
   slotOf,
@@ -203,6 +204,20 @@ describe("album pages", () => {
     expect(nine.earnedOrder).toEqual(AUTUMN_STICKERS.slice(10, 19).map((s) => s.id));
     expect(albumPages(stickers(20), new Date(2026, 10, 7))[0]).toMatchObject({ won: 20, total: 24, complete: false });
     expect(albumPages(AUTUMN_STICKERS.map((s) => editionId(s.id, 2026)), new Date(2026, 10, 7)).find((p) => p.key === "autumn-2026")).toMatchObject({ won: 56, total: 56, complete: true });
+  });
+
+  it("the first 20 stickers are scattered over the boxes, always the same way for one child; later rows fill in order", () => {
+    const boxes = placeInGrid(20, 24, "p1-autumn-2026");
+    expect(boxes.slice(0, 20).slice().sort((x, y) => x! - y!)).toEqual(Array.from({ length: 20 }, (_, i) => i)); // every box used once
+    expect(boxes.slice(0, 20)).not.toEqual(Array.from({ length: 20 }, (_, i) => i)); // not in winning order
+    expect(boxes.slice(20)).toEqual([null, null, null, null]);
+    expect(placeInGrid(20, 24, "p1-autumn-2026")).toEqual(boxes); // stable
+    expect(placeInGrid(20, 24, "p2-autumn-2026")).not.toEqual(boxes); // another child, another picture
+    // stickers already placed never move when more are won
+    const nine = placeInGrid(9, 20, "p1-autumn-2026");
+    expect(placeInGrid(10, 20, "p1-autumn-2026").map((k) => (k === 9 ? null : k))).toEqual(nine);
+    const more = placeInGrid(23, 24, "p1-autumn-2026");
+    expect(more.slice(20)).toEqual([20, 21, 22, null]);
   });
 
   it("an unfinished classics grid stays open when no season is running", () => {

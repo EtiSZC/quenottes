@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import BathroomBackground from "@/components/BathroomBackground";
-import { albumPages, displayName, getActiveProfiles, getProfile, listProfiles, type AlbumPage, type Sticker } from "@/lib/progress";
+import { albumPages, displayName, getActiveProfiles, getProfile, listProfiles, placeInGrid, type AlbumPage, type Sticker } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 
 interface StickerAlbumProps {
@@ -53,10 +53,13 @@ const HINT: Partial<Record<Look, string>> = {
   autumn: "Jusqu'au 30 novembre\u00A0!",
 };
 
-const Grid = ({ page, look }: { page: AlbumPage; look: Look }) => {
-  // A long grid (« Automne en forêt ») fills its boxes in the order the stickers were won.
+const Grid = ({ page, look, seed }: { page: AlbumPage; look: Look; seed: string }) => {
+  // A long grid (« Automne en forêt »): the first 20 stickers land in scattered boxes (like the classics,
+  // where each sticker has its own place), the next ones fill the added rows in order.
   const cells: (Sticker | null)[] = page.slotted
-    ? Array.from({ length: page.total }, (_, i) => page.stickers.find((s) => s.id === page.earnedOrder[i]) ?? null)
+    ? placeInGrid(page.won, page.total, `${seed}-${page.key}`).map((k) =>
+        k === null ? null : (page.stickers.find((s) => s.id === page.earnedOrder[k]) ?? null),
+      )
     : page.stickers.map((s) => (page.earned.has(s.id) ? s : null));
   return (
     <ul className="grid grid-cols-4 gap-3">
@@ -167,7 +170,7 @@ const StickerAlbum = ({ onBack, now = new Date() }: StickerAlbumProps) => {
                   {counter}
                 </h2>
                 {HINT[look] && <p className={cn("px-1 -mt-2 text-sm font-body font-semibold", colours.hint)}>{HINT[look]}</p>}
-                <Grid page={page} look={look} />
+                <Grid page={page} look={look} seed={profileId} />
               </section>
             );
           }
@@ -198,7 +201,7 @@ const StickerAlbum = ({ onBack, now = new Date() }: StickerAlbumProps) => {
               </button>
               {open && (
                 <div id={panel}>
-                  <Grid page={page} look={look} />
+                  <Grid page={page} look={look} seed={profileId} />
                 </div>
               )}
             </section>
