@@ -221,7 +221,7 @@ export function subscribeMusic(listener: (on: boolean) => void) {
 // ---------------------------------------------------------------------------
 
 // Measured: Lily's clips ≈ -20.7 dBFS (active RMS); the score at gain 0.55 ≈ -26 dBFS.
-// Music stays ≥ 12 dB under the voice, and ≥ 20 dB under it while Brillou speaks.
+// Music stays ≥ 12 dB under the voice, and ≥ 20 dB under it while Quenottes speaks.
 export const MUSIC_LEVEL = 0.24; // ≈ -33 dBFS → ~12.5 dB below the voice
 export const MUSIC_DUCKED = 0.09; // ≈ -41.6 dBFS → ~21 dB below the voice while it speaks
 const LEVEL = MUSIC_LEVEL;
@@ -269,7 +269,7 @@ export function stopMusic() {
   setTimeout(() => m.disconnect(), 300);
 }
 
-// Lower the music while Brillou speaks; stop it when muted.
+// Lower the music while Quenottes speaks; stop it when muted.
 subscribeClip((playing) => {
   ducked = playing;
   if (master) master.gain.setTargetAtTime(playing ? DUCKED : LEVEL, master.context.currentTime, 0.06);

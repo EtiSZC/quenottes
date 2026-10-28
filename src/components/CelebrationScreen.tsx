@@ -7,9 +7,8 @@ import BathroomBackground from "@/components/BathroomBackground";
 import { playFanfare, playStarSound } from "@/lib/sounds";
 import { speak, stopSpeaking } from "@/lib/voice";
 import { CELEBRATION_LINE, CELEBRATION_LINE_TOGETHER } from "@/data/voiceLines";
-import { HALLOWEEN_STICKERS, joinNames, type ProfileSessionResult } from "@/lib/progress";
+import { joinNames, type ProfileSessionResult } from "@/lib/progress";
 
-const isSpooky = (id: string) => HALLOWEEN_STICKERS.some((s) => s.id === id);
 
 interface CelebrationScreenProps {
   /** What this session earned, one entry per child who brushed (several = together). */
@@ -75,7 +74,7 @@ const CelebrationScreen = ({ results, onDone, onAlbum }: CelebrationScreenProps)
         >
           <img
             src={mascotCelebrateImg}
-            alt="Brillou célèbre"
+            alt="Quenottes célèbre"
             className="w-40 h-40 sm:w-52 sm:h-52 mascot-celebrate drop-shadow-xl"
           />
         </motion.div>
@@ -106,9 +105,11 @@ const CelebrationScreen = ({ results, onDone, onAlbum }: CelebrationScreenProps)
                 key={r.profile.id}
                 className={
                   "flex flex-col items-center gap-1 bg-white border-[3px] rounded-3xl " +
-                  (r.newSticker && isSpooky(r.newSticker.id)
+                  (r.season === "halloween"
                     ? "border-[#FF8A3D] shadow-[0_0_18px_#FF8A3D] "
-                    : "border-ink shadow-[0_6px_0_hsl(var(--ink)/0.18)] ") +
+                    : r.season === "autumn"
+                      ? "border-[#E07B22] shadow-[0_0_18px_#E07B22] "
+                      : "border-ink shadow-[0_6px_0_hsl(var(--ink)/0.18)] ") +
                   (together ? "px-3 py-3 w-[44%] max-w-[10rem]" : "px-8 py-4")
                 }
                 initial={{ rotateY: 180, scale: 0.6, opacity: 0 }}
@@ -125,8 +126,11 @@ const CelebrationScreen = ({ results, onDone, onAlbum }: CelebrationScreenProps)
                       {r.newSticker.emoji}
                     </span>
                     <span className="font-display font-bold text-lg text-ink">{r.newSticker.name}</span>
-                    {isSpooky(r.newSticker.id) && (
+                    {r.season === "halloween" && (
                       <span className="text-xs font-display font-bold text-[#C2410C]">🎃 Halloween</span>
+                    )}
+                    {r.season === "autumn" && (
+                      <span className="text-xs font-display font-bold text-[#B45309]">🍂 Automne en forêt</span>
                     )}
                   </>
                 ) : (

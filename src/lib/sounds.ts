@@ -161,7 +161,7 @@ function playTone(frequency: number, duration: number, type: OscillatorType = 's
 }
 
 // ---------------------------------------------------------------------------
-// Pre-recorded clips (Brillou's voice), played on the same unlocked context
+// Pre-recorded clips (Quenottes's voice), played on the same unlocked context
 // ---------------------------------------------------------------------------
 
 const clipCache = new Map<string, Promise<AudioBuffer | null>>();

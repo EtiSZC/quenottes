@@ -2,7 +2,7 @@ import { QueueStrategy, TextToSpeech } from "@capacitor-community/text-to-speech
 import manifest from "@/data/voice-manifest.json";
 import { isMuted, loadClip, playClip, stopClip, subscribeMuted } from "./sounds";
 
-// Brillou's voice: pre-recorded ElevenLabs clips (public/voice, see
+// Quenottes's voice: pre-recorded ElevenLabs clips (public/voice, see
 // scripts/generate-voice.mjs). Any sentence without a clip falls back to the
 // phone's text-to-speech (native on Android; speechSynthesis in a browser).
 
@@ -38,7 +38,7 @@ function settleWaiters(finished: boolean) {
 }
 
 /**
- * Say a sentence in French, cutting off anything Brillou was still saying.
+ * Say a sentence in French, cutting off anything Quenottes was still saying.
  * Resolves true when the sentence is over (the clip ended, or its estimated time passed when
  * nothing audible plays, e.g. muted), false if a newer sentence or stopSpeaking() cut it off.
  */

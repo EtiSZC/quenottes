@@ -93,7 +93,7 @@ const BrushingScreen = ({ onComplete, onCancel }: BrushingScreenProps) => {
     prevPhaseRef.current = phaseIndex;
   }, [currentZoneIndex, phaseIndex]);
 
-  // Brillou says each instruction when its step/view starts (just after the chime),
+  // Quenottes says each instruction when its step/view starts (just after the chime),
   // and "Bravo" at the end. Pausing cuts him off; resuming repeats the instruction.
   const instruction = finished ? FINISH_LINE : currentPhase.instruction;
   useEffect(() => {
@@ -190,9 +190,9 @@ const BrushingScreen = ({ onComplete, onCancel }: BrushingScreenProps) => {
           <Countdown value={countdown} />
         </div>
 
-        {/* Brillou explains the current zone */}
+        {/* Quenottes explains the current zone */}
         <div className="w-full max-w-md flex items-center gap-3">
-          <img src={mascotImg} alt="Brillou" className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 mascot-bounce drop-shadow-lg" />
+          <img src={mascotImg} alt="Quenottes" className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 mascot-bounce drop-shadow-lg" />
           <AnimatePresence mode="wait">
             <motion.div
               key={finished ? "done" : `${currentZoneIndex}-${phaseIndex}`}
@@ -257,7 +257,7 @@ const BrushingScreen = ({ onComplete, onCancel }: BrushingScreenProps) => {
                 Pause
               </h2>
               <p className="text-lg text-muted-foreground font-body font-semibold text-center">
-                Brillou t'attend ! Encore {remainingLabel} de brossage.
+                Quenottes t'attend ! Encore {remainingLabel} de brossage.
               </p>
               <Button variant="hero" size="lg" onClick={handleResume} autoFocus className="mt-2">
                 ▶ Continuer
@@ -278,7 +278,7 @@ function getEncouragement(elapsed: number): string {
     "Tu te débrouilles super bien\u00A0! 🌟",
     "Continue comme ça, champion\u00A0! 💪",
     "Tes dents vont briller\u00A0! ✨",
-    "Brillou est fier de toi\u00A0! 😊",
+    "Quenottes est fier de toi\u00A0! 😊",
     "Tu es un pro du brossage\u00A0! 🏆",
     "Encore un peu, courage\u00A0! 🎉",
     "Super travail\u00A0! 👏",

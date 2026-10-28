@@ -7,7 +7,7 @@ const VOICE_DBFS = -20.7;
 const musicDbfs = (gain: number) => -26 + dB(gain / 0.55);
 
 describe("music mode", () => {
-  it("stays well under Brillou's voice: ≥ 12 dB normally, ≥ 20 dB while he speaks", () => {
+  it("stays well under Quenottes's voice: ≥ 12 dB normally, ≥ 20 dB while he speaks", () => {
     expect(VOICE_DBFS - musicDbfs(MUSIC_LEVEL)).toBeGreaterThanOrEqual(12);
     expect(VOICE_DBFS - musicDbfs(MUSIC_DUCKED)).toBeGreaterThanOrEqual(20);
   });
