@@ -35,7 +35,7 @@ export const PARENT_TIP = {
   title: "🪥 Dentifrice : les repères",
   lines: [
     "Un petit pois à partir de 3 ans. Avant 3 ans, demandez conseil à votre dentiste.",
-    "On crache l'excès et on ne se rince pas la bouche : les fluorures continuent de protéger les dents. Un adulte brosse avant 6 ans.",
+    "On crache l'excès et on ne se rince pas la bouche : les fluorures continuent de protéger les dents.",
     "Teneur en fluor adaptée à l'âge : lisez l'étiquette ou demandez à votre dentiste ou pharmacien.",
   ],
   sources: "Sources : Haute Autorité de santé, ameli. En cas de doute, demandez à un professionnel.",
