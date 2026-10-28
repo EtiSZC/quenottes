@@ -1,4 +1,4 @@
-// Every sentence Brillou says out loud. Pre-recorded with ElevenLabs by
+// Every sentence Quenottes says out loud. Pre-recorded with ElevenLabs by
 // scripts/generate-voice.mjs (run it after changing any of these texts).
 // The ".ts" extension lets Node import this file directly in that script.
 import { BRUSHING_ZONES } from "./brushingZones.ts";

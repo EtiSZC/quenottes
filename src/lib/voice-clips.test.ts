@@ -22,7 +22,7 @@ describe("pre-recorded voice", () => {
     vi.mocked(TextToSpeech.speak).mockClear();
   });
 
-  it("has a recorded clip for every sentence Brillou says", () => {
+  it("has a recorded clip for every sentence Quenottes says", () => {
     for (const line of VOICE_LINES) expect(manifest).toHaveProperty([line]);
   });
 

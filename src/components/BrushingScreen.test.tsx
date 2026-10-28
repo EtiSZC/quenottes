@@ -92,7 +92,7 @@ describe("BrushingScreen", () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
-  it("has Brillou say the instruction, stop on pause and repeat it on resume", () => {
+  it("has Quenottes say the instruction, stop on pause and repeat it on resume", () => {
     render(<BrushingScreen onComplete={() => {}} onCancel={() => {}} />);
     advance(500);
     expect(speak).toHaveBeenCalledWith("Brosse le devant des dents du haut\u00A0!");

@@ -106,7 +106,7 @@ const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreen
         >
           <img
             src={mascotImg}
-            alt="Brillou la mascotte"
+            alt="Quenottes la mascotte"
             className="w-40 h-40 sm:w-52 sm:h-52 mascot-bounce drop-shadow-xl"
           />
         </motion.div>

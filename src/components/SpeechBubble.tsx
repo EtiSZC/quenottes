@@ -8,7 +8,7 @@ interface SpeechBubbleProps {
   className?: string;
 }
 
-/** Comic-style speech bubble for Brillou. */
+/** Comic-style speech bubble for Quenottes. */
 const SpeechBubble = ({ children, tail = "left", className }: SpeechBubbleProps) => (
   <div
     className={cn(

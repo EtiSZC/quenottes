@@ -74,7 +74,7 @@ const CelebrationScreen = ({ results, onDone, onAlbum }: CelebrationScreenProps)
         >
           <img
             src={mascotCelebrateImg}
-            alt="Brillou célèbre"
+            alt="Quenottes célèbre"
             className="w-40 h-40 sm:w-52 sm:h-52 mascot-celebrate drop-shadow-xl"
           />
         </motion.div>
