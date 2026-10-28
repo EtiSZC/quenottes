@@ -168,7 +168,7 @@ const ParentsScreen = ({ onBack, onSync }: ParentsScreenProps) => {
         </section>
 
         <p className="w-full max-w-md text-xs font-body font-semibold text-muted-foreground text-center">
-          Voix de Brillou : elevenlabs.io
+          Voix de Quenottes : elevenlabs.io
         </p>
       </div>
     </BathroomBackground>

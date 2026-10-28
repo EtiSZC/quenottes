@@ -52,7 +52,7 @@ Live at **https://etiszc.github.io/quenottes/** (was `/brosse-et-brille/` until 
 - **Offline**: workbox precaches js/css/html, Lily's 13 mp3, the 7 woff2 fonts, images and icons (`maximumFileSizeToCacheInBytes` 3 MB). Verified offline on the live site (reload + voice clip from cache).
 - **iPhone specifics**: `navigator.audioSession.type = "playback"` in `unlockAudio()` (silent switch doesn't mute), `viewport-fit=cover` + safe-area padding in `BathroomBackground`, apple-touch-icon / PWA icons in `public/` (generated from `assets/logo.png`), `navigator.storage.persist()` at start.
 - **QR sync in the browser**: `src/components/CameraScanner.tsx` (getUserMedia back camera + `jsqr`, only `BB1` codes, camera stopped on read/cancel); the Android app keeps ML Kit (`usesNativeScanner()` in `src/lib/scanner.ts`).
-- **Credit**: « Voix de Brillou : elevenlabs.io » in the parents area (free ElevenLabs plan, public repo → attribution required, non-commercial).
+- **Credit**: « Voix de Quenottes : elevenlabs.io » in the parents area (free ElevenLabs plan, public repo → attribution required, non-commercial).
 - CI notices (2026-10): GitHub actions on Node 20 are forced to Node 24 (bump to v5 actions when available); `ubuntu-latest` moves to Ubuntu 26 on 2026-10-19.
 - **Merged into `main` on 2026-10-21** (all tests, Android regression on the Galaxy A55, two-phone sync test with v0.9, user's OK); the workflow now deploys from `main`.
 
