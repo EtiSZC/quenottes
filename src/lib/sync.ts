@@ -5,9 +5,13 @@ import {
   AVATARS,
   DEFAULT_PROFILE,
   MAX_PROFILES,
+  FIRST_EDITION_YEAR,
   HALLOWEEN_STICKERS,
+  SEASONS,
   STICKERS,
+  editionId,
   newProfileId,
+  splitSticker,
   toDay,
   unionHistory,
   type ProfileData,
@@ -34,8 +38,14 @@ interface WireProfile {
   s: string;
   /** sticker bitmask (bit n = STICKERS[n]) — the 20 classics only: v0.8 phones refuse k ≥ 2^20 */
   k: number;
-  /** Halloween bitmask (bit n = HALLOWEEN_STICKERS[n]); sent only when non-zero, ignored by v0.8 phones */
+  /** Halloween 2026 bitmask (bit n = HALLOWEEN_STICKERS[n]); sent only when non-zero, ignored by v0.8 phones */
   h?: number;
+  /**
+   * Every other seasonal edition, « h2027 » / « a2026 » (season letter + year) → bitmap of its
+   * stickers (base64url, bit n = the season's sticker n). Sent only when non-empty; older phones
+   * ignore it, so they lose nothing.
+   */
+  e?: Record<string, string>;
 }
 
 interface WireState {
@@ -78,6 +88,33 @@ const maskOf = (set: readonly Sticker[], ids: string[]) =>
   set.reduce((mask, s, i) => (ids.includes(s.id) ? mask | (1 << i) : mask), 0);
 const idsOf = (set: readonly Sticker[], mask: number) => set.filter((_, i) => mask & (1 << i)).map((s) => s.id);
 
+/** An edition's stickers as a bitmap of bytes (a season can hold more than 31 stickers). */
+const bitmapOf = (set: readonly Sticker[], has: (id: string) => boolean) => {
+  const bytes = new Uint8Array(Math.ceil(set.length / 8));
+  set.forEach((s, i) => {
+    if (has(s.id)) bytes[i >> 3] |= 1 << (i & 7);
+  });
+  return toBase64Url(bytes);
+};
+
+/** Reads an edition's bitmap; null when it is malformed (wrong length or bits past the last sticker). */
+function idsOfBitmap(set: readonly Sticker[], text: string): string[] | null {
+  let bytes: Uint8Array;
+  try {
+    bytes = fromBase64Url(text);
+  } catch {
+    return null;
+  }
+  if (bytes.length !== Math.ceil(set.length / 8)) return null;
+  const ids: string[] = [];
+  for (let i = 0; i < bytes.length * 8; i++) {
+    if (!(bytes[i >> 3] & (1 << (i & 7)))) continue;
+    if (i >= set.length) return null;
+    ids.push(set[i].id);
+  }
+  return ids;
+}
+
 function encodeProfile(id: string, name: string, avatar: string, history: ProfileData, fromDay: number): WireProfile {
   const days = history.sessions.map((s) => dayNumber(s.date)).filter((d) => d >= fromDay);
   const first = days.length ? Math.min(...days) : 0;
@@ -90,8 +127,18 @@ function encodeProfile(id: string, name: string, avatar: string, history: Profil
     bytes[bit >> 3] |= 1 << (bit & 7);
   }
   const wire: WireProfile = { i: id, n: name, a: Math.max(0, AVATARS.indexOf(avatar)), d: first, s: toBase64Url(bytes), k: maskOf(STICKERS, history.stickers) };
-  const h = maskOf(HALLOWEEN_STICKERS, history.stickers);
+  const h = maskOf(HALLOWEEN_STICKERS, history.stickers.map((id) => (splitSticker(id).year === FIRST_EDITION_YEAR ? splitSticker(id).id : "")));
   if (h) wire.h = h;
+  // Every other edition (the 2026 Halloween travels as `h`).
+  const mine = history.stickers.map(splitSticker);
+  for (const season of SEASONS) {
+    const years = new Set(mine.filter((m) => m.year !== null && season.stickers.some((s) => s.id === m.id)).map((m) => m.year!));
+    for (const y of years) {
+      if (season.id === "halloween" && y === FIRST_EDITION_YEAR) continue;
+      const bitmap = bitmapOf(season.stickers, (id) => history.stickers.includes(editionId(id, y)));
+      (wire.e ??= {})[`${season.code}${y}`] = bitmap;
+    }
+  }
   return wire;
 }
 
@@ -114,6 +161,20 @@ export interface DecodeResult {
 
 const INVALID: DecodeResult = { ok: false, profiles: [], error: "Ce code ne vient pas de Quenottes, ou il est abîmé." };
 
+/** The stickers of every edition in `e`, as stored ids; null if any entry is unknown or malformed. */
+function readEditions(e: WireProfile["e"]): string[] | null {
+  const stored: string[] = [];
+  for (const [key, bitmap] of Object.entries(e ?? {})) {
+    const match = /^([a-z])(20\d\d)$/.exec(key);
+    const season = match && SEASONS.find((s) => s.code === match[1]);
+    if (!season || typeof bitmap !== "string" || !/^[\w-]{1,40}$/.test(bitmap)) return null;
+    const ids = idsOfBitmap(season.stickers, bitmap);
+    if (!ids) return null;
+    stored.push(...ids.map((id) => editionId(id, Number(match![2]))));
+  }
+  return stored;
+}
+
 /** Strict reading of a scanned code: anything unexpected is refused. */
 export function decodeState(text: string): DecodeResult {
   if (!text?.startsWith(SYNC_PREFIX) || text.length > 4000) return INVALID;
@@ -134,8 +195,11 @@ export function decodeState(text: string): DecodeResult {
       Number.isInteger(w.d) && w.d >= 0 &&
       typeof w.s === "string" && /^[\w-]{0,1000}$/.test(w.s) &&
       Number.isInteger(w.k) && w.k >= 0 && w.k < 2 ** STICKERS.length &&
-      (w.h === undefined || (Number.isInteger(w.h) && w.h >= 0 && w.h < 2 ** HALLOWEEN_STICKERS.length));
+      (w.h === undefined || (Number.isInteger(w.h) && w.h >= 0 && w.h < 2 ** HALLOWEEN_STICKERS.length)) &&
+      (w.e === undefined || (typeof w.e === "object" && w.e !== null && !Array.isArray(w.e) && Object.keys(w.e).length <= 12));
     if (!valid) return INVALID;
+    const editions = readEditions(w.e);
+    if (!editions) return INVALID;
 
     const sessions: Session[] = [];
     let bytes: Uint8Array;
@@ -152,7 +216,11 @@ export function decodeState(text: string): DecodeResult {
         }
       }
     });
-    const stickers = [...idsOf(STICKERS, w.k), ...idsOf(HALLOWEEN_STICKERS, w.h ?? 0)];
+    const stickers = [
+      ...idsOf(STICKERS, w.k),
+      ...idsOf(HALLOWEEN_STICKERS, w.h ?? 0).map((id) => editionId(id, FIRST_EDITION_YEAR)),
+      ...editions,
+    ];
     profiles.push({ id: w.i, name: w.n, avatar: AVATARS[w.a], sessions, stickers });
   }
   return { ok: true, profiles, error: "" };

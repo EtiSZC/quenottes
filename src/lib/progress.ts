@@ -89,20 +89,194 @@ export const HALLOWEEN_STICKERS = [
   { id: "spider", emoji: "🕷️", name: "Araignée" },
 ] as const;
 
-export const ALL_STICKERS = [...STICKERS, ...HALLOWEEN_STICKERS] as const;
-export type Sticker = (typeof ALL_STICKERS)[number];
+/**
+ * « Automne en forêt »: 28 autumn + 28 forest stickers, interleaved. It lasts 3-30 November,
+ * i.e. 56 brushings at two a day, so a child brushing morning and evening never runs dry.
+ */
+export const AUTUMN_STICKERS = [
+  { id: "leaf", emoji: "🍂", name: "Feuille morte" },
+  { id: "pine", emoji: "🌲", name: "Sapin" },
+  { id: "maple", emoji: "🍁", name: "Feuille d'érable" },
+  { id: "tree", emoji: "🌳", name: "Arbre" },
+  { id: "chestnut", emoji: "🌰", name: "Châtaigne" },
+  { id: "deer", emoji: "🦌", name: "Cerf" },
+  { id: "mushroom", emoji: "🍄", name: "Champignon" },
+  { id: "bear", emoji: "🐻", name: "Ours" },
+  { id: "squirrel", emoji: "🐿️", name: "Écureuil" },
+  { id: "boar", emoji: "🐗", name: "Sanglier" },
+  { id: "hedgehog", emoji: "🦔", name: "Hérisson" },
+  { id: "rabbit", emoji: "🐇", name: "Lapin" },
+  { id: "apple", emoji: "🍎", name: "Pomme" },
+  { id: "beaver", emoji: "🦫", name: "Castor" },
+  { id: "pear", emoji: "🍐", name: "Poire" },
+  { id: "skunk", emoji: "🦨", name: "Mouffette" },
+  { id: "grapes", emoji: "🍇", name: "Raisin" },
+  { id: "snail", emoji: "🐌", name: "Escargot" },
+  { id: "umbrella", emoji: "☔", name: "Parapluie" },
+  { id: "ladybug", emoji: "🐞", name: "Coccinelle" },
+  { id: "rain", emoji: "🌧️", name: "Pluie" },
+  { id: "badger", emoji: "🦡", name: "Blaireau" },
+  { id: "scarf", emoji: "🧣", name: "Écharpe" },
+  { id: "camp", emoji: "🏕️", name: "Camp" },
+  { id: "boots", emoji: "🥾", name: "Bottes" },
+  { id: "fern", emoji: "🌿", name: "Fougère" },
+  { id: "kite", emoji: "🪁", name: "Cerf-volant" },
+  { id: "eagle", emoji: "🦅", name: "Aigle" },
+  { id: "basket", emoji: "🧺", name: "Panier" },
+  { id: "campfire", emoji: "🔥", name: "Feu de camp" },
+  { id: "mittens", emoji: "🧤", name: "Moufles" },
+  { id: "caterpillar", emoji: "🐛", name: "Chenille" },
+  { id: "coat", emoji: "🧥", name: "Manteau" },
+  { id: "ant", emoji: "🐜", name: "Fourmi" },
+  { id: "wind", emoji: "🌬️", name: "Vent" },
+  { id: "lizard", emoji: "🦎", name: "Lézard" },
+  { id: "cloud", emoji: "☁️", name: "Nuage" },
+  { id: "frog", emoji: "🐸", name: "Grenouille" },
+  { id: "wheat", emoji: "🌾", name: "Blé" },
+  { id: "cricket", emoji: "🦗", name: "Grillon" },
+  { id: "corn", emoji: "🌽", name: "Maïs" },
+  { id: "bird", emoji: "🐦", name: "Oiseau" },
+  { id: "carrot", emoji: "🥕", name: "Carotte" },
+  { id: "wolf", emoji: "🐺", name: "Loup" },
+  { id: "duck", emoji: "🦆", name: "Canard" },
+  { id: "compass", emoji: "🧭", name: "Boussole" },
+  { id: "swan", emoji: "🦢", name: "Cygne" },
+  { id: "map", emoji: "🗺️", name: "Carte" },
+  { id: "peacock", emoji: "🦚", name: "Paon" },
+  { id: "torch", emoji: "🔦", name: "Lampe torche" },
+  { id: "yarn", emoji: "🧶", name: "Pelote de laine" },
+  { id: "backpack", emoji: "🎒", name: "Sac à dos" },
+  { id: "sunset", emoji: "🌅", name: "Coucher de soleil" },
+  { id: "sprout", emoji: "🌱", name: "Pousse" },
+  { id: "house", emoji: "🏡", name: "Maison" },
+  { id: "leaves", emoji: "🍃", name: "Feuilles au vent" },
+] as const;
 
-export type StickerSetId = "classic" | "halloween";
-/** The album's pages, in order. */
-export const STICKER_SETS: { id: StickerSetId; title: string; stickers: readonly Sticker[] }[] = [
-  { id: "classic", title: "Mes autocollants", stickers: STICKERS },
-  { id: "halloween", title: "Halloween", stickers: HALLOWEEN_STICKERS },
-];
+export const ALL_STICKERS = [...STICKERS, ...HALLOWEEN_STICKERS, ...AUTUMN_STICKERS] as const;
+export type Sticker = (typeof ALL_STICKERS)[number];
 
 /** Halloween season: 15 October → 2 November (local date), every year. */
 export function isHalloweenSeason(now = new Date()): boolean {
   const m = now.getMonth(), d = now.getDate();
   return (m === 9 && d >= 15) || (m === 10 && d <= 2);
+}
+
+/** « Automne en forêt » season: 3 → 30 November (local date), every year. */
+export function isAutumnSeason(now = new Date()): boolean {
+  return now.getMonth() === 10 && now.getDate() >= 3;
+}
+
+// ---------------------------------------------------------------------------
+// Seasonal editions: every year a season starts again with an empty grid
+// ---------------------------------------------------------------------------
+
+export type SeasonId = "halloween" | "autumn";
+
+export interface Season {
+  id: SeasonId;
+  /** One letter in the sync code. */
+  code: "h" | "a";
+  title: string;
+  stickers: readonly Sticker[];
+  /** Month (0-based) and French name of its start, for « revient en octobre 2027 ». */
+  startMonth: number;
+  monthName: string;
+  inSeason: (now: Date) => boolean;
+}
+
+export const SEASONS: readonly Season[] = [
+  { id: "halloween", code: "h", title: "Halloween", stickers: HALLOWEEN_STICKERS, startMonth: 9, monthName: "octobre", inSeason: isHalloweenSeason },
+  { id: "autumn", code: "a", title: "Automne en forêt", stickers: AUTUMN_STICKERS, startMonth: 10, monthName: "novembre", inSeason: isAutumnSeason },
+];
+
+/** Halloween stickers were stored without a year until the first edition (2026) had ended. */
+export const FIRST_EDITION_YEAR = 2026;
+
+/** A seasonal sticker is stored with its year (« pumpkin@2026 »); classics keep their bare id. */
+export const editionId = (stickerId: string, year: number) => `${stickerId}@${year}`;
+
+export function splitSticker(stored: string): { id: string; year: number | null } {
+  const at = stored.indexOf("@");
+  const year = at < 0 ? NaN : Number(stored.slice(at + 1));
+  return at > 0 && Number.isInteger(year) ? { id: stored.slice(0, at), year } : { id: stored, year: null };
+}
+
+export const seasonOfSticker = (id: string): Season | undefined => SEASONS.find((s) => s.stickers.some((x) => x.id === id));
+
+/** Halloween ids saved by v0.9-v0.11 (no year) are the 2026 edition. Keeps the order, drops duplicates. */
+export function migrateStickerIds(ids: string[]): string[] {
+  const halloween = new Set<string>(HALLOWEEN_STICKERS.map((s) => s.id));
+  return [...new Set(ids.map((id) => (halloween.has(id) ? editionId(id, FIRST_EDITION_YEAR) : id)))];
+}
+
+export interface AlbumPage {
+  key: string;
+  /** null = the classics. */
+  season: Season | null;
+  year: number | null;
+  /** « Halloween 2026 », « Automne en forêt 2026 », « Mes autocollants ». */
+  title: string;
+  stickers: readonly Sticker[];
+  /** Base ids won in this edition. */
+  earned: ReadonlySet<string>;
+  won: number;
+  total: number;
+  complete: boolean;
+  /** The grid being played now (open); every other page is folded at the bottom. */
+  current: boolean;
+  /** Line shown in the folded bar. */
+  note: string;
+}
+
+/**
+ * The album's pages for one child: the grid being played now first (the season's edition,
+ * else the classics), then the folded ones — classics, then past or finished editions, newest
+ * first. A season with nothing won this year stays hidden outside its dates.
+ */
+export function albumPages(stored: string[], now = new Date()): AlbumPage[] {
+  const year = now.getFullYear();
+  const mine = stored.map(splitSticker);
+  const build = (season: Season | null, y: number | null): AlbumPage => {
+    const stickers = season ? season.stickers : STICKERS;
+    const earned = new Set(mine.filter((m) => m.year === y && stickers.some((s) => s.id === m.id)).map((m) => m.id));
+    return {
+      key: season ? `${season.id}-${y}` : "classic",
+      season,
+      year: y,
+      title: season ? `${season.title} ${y}` : "Mes autocollants",
+      stickers,
+      earned,
+      won: earned.size,
+      total: stickers.length,
+      complete: earned.size >= stickers.length,
+      current: false,
+      note: "",
+    };
+  };
+
+  const classic = build(null, null);
+  const editions: AlbumPage[] = [];
+  for (const season of SEASONS) {
+    const years = new Set<number>();
+    for (const m of mine) if (m.year !== null && season.stickers.some((s) => s.id === m.id)) years.add(m.year);
+    if (season.inSeason(now)) years.add(year);
+    for (const y of years) editions.push(build(season, y));
+  }
+  editions.sort((a, b) => b.year! - a.year! || SEASONS.indexOf(a.season!) - SEASONS.indexOf(b.season!));
+
+  const live = editions.find((e) => e.year === year && e.season!.inSeason(now) && !e.complete);
+  if (live) live.current = true;
+  else if (!classic.complete) classic.current = true;
+
+  for (const page of [classic, ...editions]) {
+    if (page.complete) page.note = "Tous gagnés\u00A0! 🎉";
+    else if (!page.season) page.note = live ? `À reprendre quand « ${live.season!.title} » est terminé.` : "";
+    else if (!page.current) {
+      const next = now.getMonth() < page.season.startMonth ? year : year + 1;
+      if (page.year === next - 1) page.note = `Une nouvelle grille revient en ${page.season.monthName} ${next}\u00A0!`;
+    }
+  }
+  return [...[classic, ...editions].filter((p) => p.current), ...[classic, ...editions].filter((p) => !p.current)];
 }
 
 // ---------------------------------------------------------------------------
@@ -168,6 +342,13 @@ function repair(data: ProgressData): boolean {
   });
   data.active = data.active.filter((id) => seen.has(id));
   if (!data.active.length) data.active = [data.profiles[0].id];
+  for (const history of Object.values(data.data)) {
+    const migrated = migrateStickerIds(history.stickers);
+    if (migrated.length !== history.stickers.length || migrated.some((id, i) => id !== history.stickers[i])) {
+      history.stickers = migrated;
+      changed = true;
+    }
+  }
   return changed;
 }
 
@@ -307,13 +488,16 @@ export interface SessionResult {
   slot: Slot;
   /** Sticker earned by this session, or null if this slot was already filled (or the album is complete). */
   newSticker: Sticker | null;
+  /** The season this sticker belongs to (shown with a label), null for a classic. */
+  season?: SeasonId | null;
   streak: number;
 }
 
 /**
  * Record a completed 3-minute session. Brushing twice in the same slot counts once.
- * The sticker is drawn at random among those not earned yet — Halloween ones first during the
- * Halloween season, classics only outside it (`random` is injectable for tests).
+ * The sticker is drawn at random among those not earned yet — in season, from this year's edition
+ * of the running season first (Halloween, then « Automne en forêt »), then the classics; outside
+ * a season, the classics only (`random` is injectable for tests).
  */
 export function recordSession(now = new Date(), profile?: string, random = Math.random): SessionResult {
   const data = loadProgress();
@@ -323,18 +507,22 @@ export function recordSession(now = new Date(), profile?: string, random = Math.
   const alreadyFilled = p.sessions.some((s) => s.date === session.date && s.slot === session.slot);
 
   let newSticker: Sticker | null = null;
+  let seasonId: SeasonId | null = null;
   if (!alreadyFilled) {
     p.sessions.push(session);
-    // In season, Halloween stickers first (then the classics once all are won); otherwise classics only.
-    const notWon = (set: readonly Sticker[]) => set.filter((s) => !p.stickers.includes(s.id));
-    const spooky = isHalloweenSeason(now) ? notWon(HALLOWEEN_STICKERS) : [];
-    const remaining = spooky.length ? spooky : notWon(STICKERS);
-    newSticker = remaining.length ? remaining[Math.floor(random() * remaining.length)] : null;
-    if (newSticker) p.stickers.push(newSticker.id);
+    const year = now.getFullYear();
+    const season = SEASONS.find((s) => s.inSeason(now));
+    const seasonal = season ? season.stickers.filter((s) => !p.stickers.includes(editionId(s.id, year))) : [];
+    const pool: readonly Sticker[] = seasonal.length ? seasonal : STICKERS.filter((s) => !p.stickers.includes(s.id));
+    newSticker = pool.length ? pool[Math.floor(random() * pool.length)] : null;
+    if (newSticker) {
+      seasonId = seasonal.length ? season!.id : null;
+      p.stickers.push(seasonal.length ? editionId(newSticker.id, year) : newSticker.id);
+    }
   }
   data.data[id] = p;
   saveProgress(data);
-  return { slot: session.slot, newSticker, streak: streakOf(p.sessions, now) };
+  return { slot: session.slot, newSticker, season: seasonId, streak: streakOf(p.sessions, now) };
 }
 
 export interface ProfileSessionResult extends SessionResult {

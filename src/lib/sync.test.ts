@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { HALLOWEEN_STICKERS, STICKERS, getProfile, loadProgress, mergeProfiles, recordSession, replaceProgress, toDay, type ProgressData, type Session } from "./progress";
+import { AUTUMN_STICKERS, HALLOWEEN_STICKERS, STICKERS, editionId, getProfile, loadProgress, mergeProfiles, recordSession, replaceProgress, toDay, type ProgressData, type Session } from "./progress";
 import { SYNC_PREFIX, decodeState, encodeState, findLosses, mergeState, normalizeName, suggestMatches, suggestSameChild } from "./sync";
 
 const NOW = new Date(2026, 9, 11, 9);
@@ -297,27 +297,45 @@ describe("each child keeps their own album (fix 2026-10-14)", () => {
   });
 });
 
-describe("Halloween stickers travel in the QR (field h)", () => {
-  const H = HALLOWEEN_STICKERS.map((s) => s.id);
+describe("seasonal stickers travel in the QR (fields h and e)", () => {
+  const H = HALLOWEEN_STICKERS.map((s) => editionId(s.id, 2026));
   const C = STICKERS.map((s) => s.id);
   const wire = (text: string) => JSON.parse(text.slice(SYNC_PREFIX.length));
 
-  it("round-trips classics in k and Halloween ones in h", () => {
+  it("round-trips classics in k and Halloween 2026 in h", () => {
     const text = encodeState(state([{ id: "p1", name: "Léa", stickers: [C[0], H[0], H[14], C[19]] }]), NOW);
     expect(wire(text).p[0]).toMatchObject({ k: 1 | (1 << 19), h: 1 | (1 << 14) });
+    expect(wire(text).p[0]).not.toHaveProperty("e");
     expect([...decode(text)[0].stickers].sort()).toEqual([C[0], C[19], H[0], H[14]].sort());
   });
 
-  it("leaves h out when a child has no Halloween sticker (same QR as v0.8)", () => {
-    expect(wire(encodeState(state([{ id: "p1", name: "Léa", stickers: [C[3]] }]), NOW)).p[0]).not.toHaveProperty("h");
+  it("other editions travel in e as a bitmap, one entry per season and year", () => {
+    const stickers = [
+      editionId(HALLOWEEN_STICKERS[2].id, 2027),
+      editionId(AUTUMN_STICKERS[0].id, 2026),
+      editionId(AUTUMN_STICKERS[55].id, 2026),
+      editionId(AUTUMN_STICKERS[9].id, 2027),
+    ];
+    const text = encodeState(state([{ id: "p1", name: "Léa", stickers }]), NOW);
+    expect(Object.keys(wire(text).p[0].e).sort()).toEqual(["a2026", "a2027", "h2027"]);
+    expect(decode(text)[0].stickers.sort()).toEqual(stickers.sort());
   });
 
-  it("still reads a code from an older phone, and refuses a broken h", () => {
-    const old = SYNC_PREFIX + JSON.stringify({ v: 1, p: [{ i: "p1", n: "Léa", a: 0, d: 0, s: "", k: 5 }] });
-    expect(decode(old)[0].stickers).toEqual([C[0], C[2]]);
-    for (const h of [-1, 1.5, 2 ** HALLOWEEN_STICKERS.length, "3"]) {
-      const bad = SYNC_PREFIX + JSON.stringify({ v: 1, p: [{ i: "p1", n: "Léa", a: 0, d: 0, s: "", k: 5, h }] });
-      expect(decodeState(bad).ok).toBe(false);
+  it("leaves h and e out when a child has no seasonal sticker (same QR as v0.8)", () => {
+    const p = wire(encodeState(state([{ id: "p1", name: "Léa", stickers: [C[3]] }]), NOW)).p[0];
+    expect(p).not.toHaveProperty("h");
+    expect(p).not.toHaveProperty("e");
+  });
+
+  it("still reads a code from an older phone (its Halloween stickers are the 2026 edition), and refuses broken fields", () => {
+    const old = SYNC_PREFIX + JSON.stringify({ v: 1, p: [{ i: "p1", n: "Léa", a: 0, d: 0, s: "", k: 5, h: 1 }] });
+    expect(decode(old)[0].stickers).toEqual([C[0], C[2], H[0]]);
+    const code = (patch: object) => SYNC_PREFIX + JSON.stringify({ v: 1, p: [{ i: "p1", n: "Léa", a: 0, d: 0, s: "", k: 5, ...patch }] });
+    for (const h of [-1, 1.5, 2 ** HALLOWEEN_STICKERS.length, "3"]) expect(decodeState(code({ h })).ok).toBe(false);
+    const valid = encodeState(state([{ id: "p1", name: "Léa", stickers: [editionId(AUTUMN_STICKERS[0].id, 2026)] }]), NOW);
+    expect(decodeState(valid).ok).toBe(true);
+    for (const e of [{ z2026: "AQ" }, { a26: "AQ" }, { a2026: "AQ" }, { a2026: "AQAAAAAB" }, { a2026: 5 }, [], "x"]) {
+      expect(decodeState(code({ e })).ok).toBe(false);
     }
   });
 
@@ -326,19 +344,20 @@ describe("Halloween stickers travel in the QR (field h)", () => {
     expect(wire(text).p[0].k).toBe(2 ** STICKERS.length - 1);
   });
 
-  it("two-way sync: each child keeps their own Halloween stickers, nothing lost", () => {
+  it("two-way sync: each child keeps their own seasonal stickers, nothing lost", () => {
+    const A = AUTUMN_STICKERS.map((s) => editionId(s.id, 2026));
     let a = state([
-      { id: "pA1", name: "Léa", stickers: [...C, H[0], H[1]] },
+      { id: "pA1", name: "Léa", stickers: [...C, H[0], H[1], A[0]] },
       { id: "pA2", name: "Tom", stickers: [C[0], H[2]] },
     ]);
     let b = state([
-      { id: "pB1", name: "Léa", stickers: [C[1], H[3]] },
-      { id: "pB2", name: "Tom", stickers: [H[4], H[5]] },
+      { id: "pB1", name: "Léa", stickers: [C[1], H[3], A[55]] },
+      { id: "pB2", name: "Tom", stickers: [H[4], H[5], editionId("pumpkin", 2027)] },
     ]);
     b = sync(b, a);
     a = sync(a, b);
     expect(history(a)).toEqual(history(b));
-    expect(history(a)["lea"].k).toEqual([...C, H[0], H[1], H[3]].sort());
-    expect(history(a)["tom"].k).toEqual([C[0], H[2], H[4], H[5]].sort());
+    expect(history(a)["lea"].k).toEqual([...C, H[0], H[1], H[3], A[0], A[55]].sort());
+    expect(history(a)["tom"].k).toEqual([C[0], H[2], H[4], H[5], editionId("pumpkin", 2027)].sort());
   });
 });

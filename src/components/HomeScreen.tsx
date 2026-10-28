@@ -9,7 +9,7 @@ import SpeechBubble from "@/components/SpeechBubble";
 import WeekCalendar from "@/components/WeekCalendar";
 import ToothpasteTubeIcon from "@/components/illustrations/ToothpasteTubeIcon";
 import LongPressButton from "@/components/LongPressButton";
-import { ALL_STICKERS, displayName, getActiveProfiles, getProfile, listProfiles, isHalloweenSeason, streakOf, weekOf } from "@/lib/progress";
+import { albumPages, displayName, getActiveProfiles, getProfile, listProfiles, isAutumnSeason, isHalloweenSeason, streakOf, weekOf } from "@/lib/progress";
 import { playStartSound, unlockAudio } from "@/lib/sounds";
 
 interface HomeScreenProps {
@@ -28,17 +28,19 @@ const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreen
     const now = new Date();
     const kids = getActiveProfiles().map((meta) => {
       const history = getProfile(meta.id);
+      const pages = albumPages(history.stickers, now);
       return {
         meta,
         week: weekOf(history.sessions, now),
         streak: streakOf(history.sessions, now),
-        stickerCount: history.stickers.length,
+        stickerCount: pages.reduce((n, pg) => n + pg.won, 0),
+        stickerTotal: pages.reduce((n, pg) => n + pg.total, 0),
       };
     });
     return { kids, multiProfile: listProfiles().length >= 2 };
   }, []);
   const together = kids.length > 1;
-  const { week, streak, stickerCount } = kids[0];
+  const { week, streak, stickerCount, stickerTotal } = kids[0];
   const greeting = together
     ? "On brosse tous ensemble\u00A0?"
     : kids[0].meta.name
@@ -63,7 +65,7 @@ const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreen
         <button
           onClick={onAlbum}
           className="absolute top-4 right-4 w-14 h-14 rounded-full bg-white/80 hover:bg-white border-[3px] border-ink/15 shadow-md flex items-center justify-center text-2xl"
-          aria-label={`Mon album : ${stickerCount} autocollants sur ${ALL_STICKERS.length}`}
+          aria-label={`Mon album : ${stickerCount} autocollants sur ${stickerTotal}`}
         >
           📒
           {stickerCount > 0 && (
@@ -116,9 +118,9 @@ const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreen
           className="relative text-5xl sm:text-6xl font-display font-bold text-center mb-3 sticker-title"
         >
           <AppTitle />
-          {isHalloweenSeason() && (
+          {(isHalloweenSeason() || isAutumnSeason()) && (
             <span aria-hidden className="absolute -top-7 -right-3 text-4xl rotate-12">
-              🎃
+              {isHalloweenSeason() ? "🎃" : "🍂"}
             </span>
           )}
         </motion.h1>

@@ -1,5 +1,22 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { HALLOWEEN_STICKERS, STICKERS, getProfile, isHalloweenSeason, recordSession, slotOf, streakOf, weekOf, type Session } from "./progress";
+import {
+  ALL_STICKERS,
+  AUTUMN_STICKERS,
+  HALLOWEEN_STICKERS,
+  STICKERS,
+  albumPages,
+  editionId,
+  getProfile,
+  isAutumnSeason,
+  isHalloweenSeason,
+  loadProgress,
+  migrateStickerIds,
+  recordSession,
+  slotOf,
+  streakOf,
+  weekOf,
+  type Session,
+} from "./progress";
 
 // Local-time dates (month is 0-based): Wednesday 7 October 2026.
 const at = (day: number, hour: number) => new Date(2026, 9, day, hour, 0);
@@ -65,9 +82,9 @@ describe("progress", () => {
   });
 });
 
-describe("Halloween stickers (only during the season)", () => {
+describe("seasonal stickers (Halloween, then « Automne en forêt »)", () => {
   beforeEach(() => localStorage.clear());
-  const date = (month: number, day: number, hour = 8) => new Date(2026, month, day, hour);
+  const date = (month: number, day: number, hour = 8, year = 2026) => new Date(year, month, day, hour);
   const allClassics = () => {
     for (let d = 1; d <= 10; d++) {
       recordSession(date(8, d, 8)); // September: classics only
@@ -76,21 +93,32 @@ describe("Halloween stickers (only during the season)", () => {
     expect(getProfile().stickers).toHaveLength(STICKERS.length);
   };
 
-  it("the season runs from 15 October to 2 November, every year", () => {
+  it("Halloween runs 15 October → 2 November and « Automne en forêt » 3 → 30 November, every year", () => {
     expect(isHalloweenSeason(date(9, 14, 23))).toBe(false);
     expect(isHalloweenSeason(date(9, 15, 0))).toBe(true);
-    expect(isHalloweenSeason(date(9, 31))).toBe(true);
     expect(isHalloweenSeason(date(10, 2, 23))).toBe(true);
     expect(isHalloweenSeason(date(10, 3, 0))).toBe(false);
-    expect(isHalloweenSeason(new Date(2027, 9, 20))).toBe(true);
+    expect(isAutumnSeason(date(10, 2, 23))).toBe(false);
+    expect(isAutumnSeason(date(10, 3, 0))).toBe(true);
+    expect(isAutumnSeason(date(10, 30, 23))).toBe(true);
+    expect(isAutumnSeason(date(11, 1, 0))).toBe(false);
+    expect(isHalloweenSeason(date(9, 20, 8, 2027))).toBe(true);
   });
 
-  it("a child with every classic gets a Halloween sticker in season, nothing after it", () => {
+  it("no sticker shares an id or a picture with another, whatever the set", () => {
+    expect(new Set(ALL_STICKERS.map((s) => s.id)).size).toBe(ALL_STICKERS.length);
+    expect(new Set(ALL_STICKERS.map((s) => s.emoji)).size).toBe(ALL_STICKERS.length);
+    expect(AUTUMN_STICKERS).toHaveLength(56); // two brushings a day for 28 days
+  });
+
+  it("a child with every classic gets a Halloween sticker in season, nothing in December", () => {
     allClassics();
     const october = recordSession(date(9, 20), undefined, () => 0);
     expect(october.newSticker).toEqual(HALLOWEEN_STICKERS[0]);
-    expect(recordSession(date(10, 10)).newSticker).toBeNull();
-    expect(getProfile().stickers).toContain(HALLOWEEN_STICKERS[0].id); // kept after the season
+    expect(october.season).toBe("halloween");
+    expect(getProfile().stickers).toContain(editionId(HALLOWEEN_STICKERS[0].id, 2026)); // stored with its year
+    expect(recordSession(date(11, 10)).newSticker).toBeNull();
+    expect(getProfile().stickers).toContain(editionId(HALLOWEEN_STICKERS[0].id, 2026)); // kept after the season
   });
 
   it("in season, Halloween stickers come first, then the classics once all are won", () => {
@@ -101,21 +129,92 @@ describe("Halloween stickers (only during the season)", () => {
     expect(new Set(getProfile().stickers).size).toBe(HALLOWEEN_STICKERS.length);
     const next = recordSession(date(9, 31, 20));
     expect(STICKERS.some((c) => c.id === next.newSticker?.id)).toBe(true);
+    expect(next.season).toBeNull();
   });
 
-  it("outside the season only classics are drawn; once all 35 are won, nothing more", () => {
-    for (let i = 0; i < STICKERS.length; i++) {
-      const r = recordSession(date(8, 1 + Math.floor(i / 2), i % 2 ? 20 : 8));
-      expect(STICKERS.some((c) => c.id === r.newSticker?.id)).toBe(true);
+  it("in November the autumn edition comes first: 56 brushings win 56 different stickers", () => {
+    allClassics();
+    const seen = new Set<string>();
+    for (let d = 3; d <= 30; d++) {
+      for (const hour of [8, 20]) {
+        const r = recordSession(date(10, d, hour));
+        expect(AUTUMN_STICKERS.some((a) => a.id === r.newSticker?.id)).toBe(true);
+        expect(r.season).toBe("autumn");
+        seen.add(r.newSticker!.id);
+      }
     }
+    expect(seen.size).toBe(56);
+    expect(recordSession(date(10, 30, 21)).newSticker).toBeNull(); // slot already filled
+  });
+
+  it("every year the grid starts again: last year's stickers can be won again", () => {
     for (let i = 0; i < HALLOWEEN_STICKERS.length; i++) recordSession(date(9, 15 + Math.floor(i / 2), i % 2 ? 20 : 8));
-    expect(getProfile().stickers).toHaveLength(STICKERS.length + HALLOWEEN_STICKERS.length);
-    expect(recordSession(date(10, 1, 20)).newSticker).toBeNull();
+    const r = recordSession(date(9, 20, 8, 2027), undefined, () => 0);
+    expect(r.newSticker).toEqual(HALLOWEEN_STICKERS[0]); // the pumpkin again, in the 2027 edition
+    expect(getProfile().stickers).toContain(editionId("pumpkin", 2026));
+    expect(getProfile().stickers).toContain(editionId("pumpkin", 2027));
+  });
+
+  it("Halloween stickers saved without a year (v0.9–v0.11) become the 2026 edition on load", () => {
+    localStorage.setItem(
+      "brosse-brille:progress:v2",
+      JSON.stringify({ version: 2, profiles: [{ id: "p1", name: "Léa", avatar: "🦊" }], data: { p1: { sessions: [], stickers: ["unicorn", "pumpkin", "ghost"] } }, active: ["p1"] }),
+    );
+    expect(loadProgress().data.p1.stickers).toEqual(["unicorn", "pumpkin@2026", "ghost@2026"]);
+    expect(migrateStickerIds(["pumpkin@2026", "pumpkin"])).toEqual(["pumpkin@2026"]);
   });
 
   it("brushing twice in the same slot still earns a single sticker", () => {
     recordSession(date(9, 20, 8));
     expect(recordSession(date(9, 20, 9)).newSticker).toBeNull();
     expect(getProfile().stickers).toHaveLength(1);
+  });
+});
+
+describe("album pages", () => {
+  const halloween2026 = HALLOWEEN_STICKERS.slice(0, 8).map((s) => editionId(s.id, 2026));
+  const classics = STICKERS.map((s) => s.id);
+
+  it("in season the running grid is open at the top, finished classics are folded under it", () => {
+    const pages = albumPages([...classics, ...halloween2026], new Date(2026, 10, 7));
+    expect(pages.map((p) => [p.key, p.current])).toEqual([
+      ["autumn-2026", true],
+      ["classic", false],
+      ["halloween-2026", false],
+    ]);
+    expect(pages[0]).toMatchObject({ title: "Automne en forêt 2026", won: 0, total: 56 });
+    expect(pages[1].note).toBe("Tous gagnés\u00A0! 🎉");
+    expect(pages[2]).toMatchObject({ title: "Halloween 2026", won: 8, total: 15, current: false });
+    expect(pages[2].note).toContain("octobre 2027");
+  });
+
+  it("an unfinished classics grid stays open when no season is running", () => {
+    const pages = albumPages(classics.slice(0, 5), new Date(2026, 11, 15));
+    expect(pages.map((p) => [p.key, p.current])).toEqual([["classic", true]]);
+  });
+
+  it("a season with nothing won stays hidden outside its dates, and shows up while it runs", () => {
+    expect(albumPages(classics.slice(0, 3), new Date(2026, 10, 7)).map((p) => p.key)).toEqual(["autumn-2026", "classic"]);
+    expect(albumPages(classics.slice(0, 3), new Date(2026, 11, 7)).map((p) => p.key)).toEqual(["classic"]);
+    expect(albumPages([], new Date(2026, 9, 20)).map((p) => p.key)).toEqual(["halloween-2026", "classic"]);
+  });
+
+  it("next year's edition opens empty above last year's folded one", () => {
+    const pages = albumPages([...classics, ...halloween2026], new Date(2027, 9, 20));
+    expect(pages.map((p) => [p.key, p.current, p.won])).toEqual([
+      ["halloween-2027", true, 0],
+      ["classic", false, 20],
+      ["halloween-2026", false, 8],
+    ]);
+  });
+
+  it("when the running edition is complete, the classics reopen", () => {
+    const all = HALLOWEEN_STICKERS.map((s) => editionId(s.id, 2026));
+    const pages = albumPages(all, new Date(2026, 9, 25));
+    expect(pages.map((p) => [p.key, p.current])).toEqual([
+      ["classic", true],
+      ["halloween-2026", false],
+    ]);
+    expect(pages[1].note).toBe("Tous gagnés\u00A0! 🎉");
   });
 });
