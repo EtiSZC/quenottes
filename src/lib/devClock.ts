@@ -3,11 +3,13 @@
 // real data (the dev server is its own origin, so it has its own localStorage).
 //   http://<mac>:8080/?now=2026-12-05T09:00             → the app believes it is that moment (the clock keeps running)
 //   http://<mac>:8080/?now=2026-12-05T09:00&seed=advent → plus a child (Léa) with Advent windows already opened
+// A test APK can bake the same two settings in at build time (VITE_FAKE_NOW=… VITE_FAKE_SEED=advent); there the
+// seed only fills an empty install, so what the tester does in that app is kept.
 import { editionId, replaceProgress, toDay, type Session } from "./progress";
 
 export function installDevClock() {
   const params = new URLSearchParams(window.location.search);
-  const target = new Date(params.get("now") ?? "").getTime();
+  const target = new Date(params.get("now") ?? import.meta.env.VITE_FAKE_NOW ?? "").getTime();
   if (!Number.isNaN(target)) {
     const RealDate = Date;
     const offset = target - RealDate.now();
@@ -23,7 +25,9 @@ export function installDevClock() {
     }
     globalThis.Date = DevDate as DateConstructor;
   }
-  if (params.get("seed") === "advent") seedAdvent();
+  const urlSeed = params.get("seed") === "advent";
+  const bakedSeed = import.meta.env.VITE_FAKE_SEED === "advent" && localStorage.getItem("brosse-brille:progress:v2") === null;
+  if (urlSeed || bakedSeed) seedAdvent();
 }
 
 /** Léa brushed since 1 December: most windows won, a few missed, today's morning done. */

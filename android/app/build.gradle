@@ -1,10 +1,19 @@
 apply plugin: 'com.android.application'
 
+// A second, separate install for testing (e.g. `-PappIdSuffix=.avent -PappLabel="Quenottes Avent"`): another app
+// id means its own data, so the real app on the phone is never touched. Without the properties nothing changes.
+def appIdSuffix = project.findProperty("appIdSuffix") ?: ""
+def appLabel = project.findProperty("appLabel")
+
 android {
     namespace = "com.etiszc.quenottes"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.etiszc.quenottes"
+        applicationId "com.etiszc.quenottes" + appIdSuffix
+        manifestPlaceholders = [
+            appLabel: appLabel ?: "@string/app_name",
+            activityLabel: appLabel ?: "@string/title_activity_main",
+        ]
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

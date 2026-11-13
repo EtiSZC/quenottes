@@ -15,8 +15,9 @@ navigator.storage?.persist?.().catch(() => {});
 
 const start = () => createRoot(document.getElementById("root")!).render(<App />);
 
-// Dev server only: ?now=… fakes the date (see src/lib/devClock.ts). Never part of a production build.
-if (import.meta.env.DEV) {
+// Dev server, or a test build made with VITE_FAKE_NOW: fakes the date (see src/lib/devClock.ts). The published app and the
+// real APK are built without it.
+if (import.meta.env.DEV || import.meta.env.VITE_FAKE_NOW) {
   import("./lib/devClock").then(({ installDevClock }) => {
     installDevClock();
     start();
