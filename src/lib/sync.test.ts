@@ -321,6 +321,13 @@ describe("seasonal stickers travel in the QR (fields h and e)", () => {
     expect(decode(text)[0].stickers.sort()).toEqual(stickers.sort());
   });
 
+  it("the Advent calendar travels in e under n2026 and merges as a union", () => {
+    const stickers = [editionId("d01m", 2026), editionId("d24s", 2026)];
+    const text = encodeState(state([{ id: "p1", name: "Léa", stickers }]), NOW);
+    expect(Object.keys(wire(text).p[0].e)).toEqual(["n2026"]);
+    expect(decode(text)[0].stickers.sort()).toEqual(stickers.sort());
+  });
+
   it("leaves h and e out when a child has no seasonal sticker (same QR as v0.8)", () => {
     const p = wire(encodeState(state([{ id: "p1", name: "Léa", stickers: [C[3]] }]), NOW)).p[0];
     expect(p).not.toHaveProperty("h");

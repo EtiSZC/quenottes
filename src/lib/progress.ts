@@ -152,7 +152,48 @@ export const AUTUMN_STICKERS = [
   { id: "leaves", emoji: "🍃", name: "Feuilles au vent" },
 ] as const;
 
-export const ALL_STICKERS = [...STICKERS, ...HALLOWEEN_STICKERS, ...AUTUMN_STICKERS] as const;
+/**
+ * Advent calendar: one door per day, 1-24 December, two windows each (morning ☀️, evening 🌙) = 48
+ * fixed stickers. A brushing opens the window of its own date and slot: ids `d05m` / `d05s`.
+ */
+const ADVENT_DOORS = [
+  ["⛄", "Bonhomme de neige", "⭐", "Étoile"],
+  ["🎁", "Cadeau", "🕯️", "Bougie"],
+  ["🧣", "Écharpe", "🌙", "Lune"],
+  ["🛷", "Luge", "🦉", "Chouette"],
+  ["🎄", "Sapin", "🌟", "Étoile brillante"],
+  ["🧤", "Moufles", "🔥", "Feu de cheminée"],
+  ["🦌", "Renne", "🧸", "Nounours"],
+  ["🔔", "Cloche", "📖", "Livre d'histoires"],
+  ["🧦", "Chaussette", "🛏️", "Lit douillet"],
+  ["❄️", "Flocon", "✨", "Étincelles"],
+  ["🐧", "Pingouin", "🌌", "Ciel étoilé"],
+  ["🤶", "Mère Noël", "🏠", "Maison"],
+  ["⛷️", "Skieur", "🫖", "Théière"],
+  ["🏂", "Snowboard", "🎶", "Musique douce"],
+  ["🐻\u200d❄️", "Ours polaire", "🧶", "Pelote de laine"],
+  ["🧑\u200d🎄", "Lutin", "🕰️", "Horloge"],
+  ["🎀", "Ruban", "🪟", "Fenêtre"],
+  ["⛸️", "Patin", "🛋️", "Canapé"],
+  ["🦊", "Renard", "🦔", "Hérisson"],
+  ["🎿", "Skis", "🌠", "Étoile filante"],
+  ["🧊", "Glaçon", "🪵", "Bois de cheminée"],
+  ["🐿️", "Écureuil", "🕊️", "Colombe"],
+  ["🎈", "Ballon", "🌃", "Nuit étoilée"],
+  ["🎅", "Père Noël", "🎇", "Feu d'artifice"],
+] as const;
+
+export const ADVENT_STICKERS: readonly { id: string; emoji: string; name: string }[] = ADVENT_DOORS.flatMap(
+  ([morningEmoji, morningName, eveningEmoji, eveningName], i) => {
+    const day = String(i + 1).padStart(2, "0");
+    return [
+      { id: `d${day}m`, emoji: morningEmoji, name: morningName },
+      { id: `d${day}s`, emoji: eveningEmoji, name: eveningName },
+    ];
+  },
+);
+
+export const ALL_STICKERS = [...STICKERS, ...HALLOWEEN_STICKERS, ...AUTUMN_STICKERS, ...ADVENT_STICKERS] as const;
 export type Sticker = (typeof ALL_STICKERS)[number];
 
 /** Halloween season: 15 October → 2 November (local date), every year. */
@@ -166,17 +207,26 @@ export function isAutumnSeason(now = new Date()): boolean {
   return now.getMonth() === 10 && now.getDate() >= 3;
 }
 
+/** Advent calendar: 1 → 24 December (local date), every year. */
+export function isAdventSeason(now = new Date()): boolean {
+  return now.getMonth() === 11 && now.getDate() <= 24;
+}
+
 // ---------------------------------------------------------------------------
 // Seasonal editions: every year a season starts again with an empty grid
 // ---------------------------------------------------------------------------
 
-export type SeasonId = "halloween" | "autumn";
+export type SeasonId = "halloween" | "autumn" | "advent";
 
 export interface Season {
   id: SeasonId;
   /** One letter in the sync code. */
-  code: "h" | "a";
+  code: "h" | "a" | "n";
   title: string;
+  /** "grid": a grid of boxes (drawn at random); "advent": 24 doors, the sticker of the day and slot. */
+  kind: "grid" | "advent";
+  /** Shown next to the title, in the album and in the corner of the Home title. */
+  icon: string;
   stickers: readonly Sticker[];
   /** Month (0-based) and French name of its start, for « revient en octobre 2027 ». */
   startMonth: number;
@@ -185,9 +235,23 @@ export interface Season {
 }
 
 export const SEASONS: readonly Season[] = [
-  { id: "halloween", code: "h", title: "Halloween", stickers: HALLOWEEN_STICKERS, startMonth: 9, monthName: "octobre", inSeason: isHalloweenSeason },
-  { id: "autumn", code: "a", title: "Automne en forêt", stickers: AUTUMN_STICKERS, startMonth: 10, monthName: "novembre", inSeason: isAutumnSeason },
+  { id: "halloween", code: "h", title: "Halloween", kind: "grid", icon: "🎃", stickers: HALLOWEEN_STICKERS, startMonth: 9, monthName: "octobre", inSeason: isHalloweenSeason },
+  { id: "autumn", code: "a", title: "Automne en forêt", kind: "grid", icon: "🍂", stickers: AUTUMN_STICKERS, startMonth: 10, monthName: "novembre", inSeason: isAutumnSeason },
+  { id: "advent", code: "n", title: "Calendrier de l'Avent", kind: "advent", icon: "🎄", stickers: ADVENT_STICKERS, startMonth: 11, monthName: "décembre", inSeason: isAdventSeason },
 ];
+
+/** « 1er décembre », « 2 décembre »… */
+export const dayLabel = (day: number) => `${day === 1 ? "1er" : day} décembre`;
+
+/** Day (1-24) and slot of an Advent sticker id (`d05s` → 5, evening); null for any other id. */
+export function adventDoorOf(id: string): { day: number; slot: Slot } | null {
+  const match = /^d(\d\d)([ms])$/.exec(id);
+  return match ? { day: Number(match[1]), slot: match[2] === "m" ? "morning" : "evening" } : null;
+}
+
+/** The Advent sticker that today's brushing of this slot opens, or undefined outside 1-24 December. */
+export const adventStickerFor = (now: Date, slot: Slot) =>
+  isAdventSeason(now) ? ADVENT_STICKERS.find((s) => s.id === `d${String(now.getDate()).padStart(2, "0")}${slot === "morning" ? "m" : "s"}`) : undefined;
 
 /** Halloween stickers were stored without a year until the first edition (2026) had ended. */
 export const FIRST_EDITION_YEAR = 2026;
@@ -257,6 +321,8 @@ export interface AlbumPage {
   earned: ReadonlySet<string>;
   /** The same ids in the order they were won: a long grid fills its boxes in that order. */
   earnedOrder: string[];
+  /** "advent": drawn as 24 doors instead of a grid. */
+  kind: "grid" | "advent";
   /** A grid longer than 20 stickers (« Automne en forêt »): boxes follow the winning order, not the sticker. */
   slotted: boolean;
   won: number;
@@ -291,9 +357,10 @@ export function albumPages(stored: string[], now = new Date()): AlbumPage[] {
       stickers,
       earned,
       earnedOrder,
-      slotted: stickers.length > GRID_START,
+      kind: season?.kind ?? "grid",
+      slotted: stickers.length > GRID_START && season?.kind !== "advent",
       won: earned.size,
-      total: visibleCells(earned.size, stickers.length),
+      total: season?.kind === "advent" ? stickers.length : visibleCells(earned.size, stickers.length),
       size: stickers.length,
       complete: earned.size >= stickers.length,
       current: false,
@@ -320,7 +387,12 @@ export function albumPages(stored: string[], now = new Date()): AlbumPage[] {
     else if (!page.season) page.note = live ? `À reprendre quand « ${live.season!.title} » est terminé.` : "";
     else if (!page.current) {
       const next = now.getMonth() < page.season.startMonth ? year : year + 1;
-      if (page.year === next - 1) page.note = `Une nouvelle grille revient en ${page.season.monthName} ${next}\u00A0!`;
+      if (page.year === next - 1) {
+        page.note =
+          page.kind === "advent"
+            ? `Un nouveau calendrier revient en ${page.season.monthName} ${next}\u00A0!`
+            : `Une nouvelle grille revient en ${page.season.monthName} ${next}\u00A0!`;
+      }
     }
   }
   return [...[classic, ...editions].filter((p) => p.current), ...[classic, ...editions].filter((p) => !p.current)];
@@ -559,7 +631,9 @@ export function recordSession(now = new Date(), profile?: string, random = Math.
     p.sessions.push(session);
     const year = now.getFullYear();
     const season = SEASONS.find((s) => s.inSeason(now));
-    const seasonal = season ? season.stickers.filter((s) => !p.stickers.includes(editionId(s.id, year))) : [];
+    // Advent: the one sticker of today's date and slot; other seasons: any sticker not won yet this year.
+    const candidates = season?.kind === "advent" ? [adventStickerFor(now, session.slot)].filter((s) => s !== undefined) : (season?.stickers ?? []);
+    const seasonal = candidates.filter((s) => !p.stickers.includes(editionId(s.id, year)));
     const pool: readonly Sticker[] = seasonal.length ? seasonal : STICKERS.filter((s) => !p.stickers.includes(s.id));
     newSticker = pool.length ? pool[Math.floor(random() * pool.length)] : null;
     if (newSticker) {

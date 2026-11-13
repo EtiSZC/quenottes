@@ -7,7 +7,7 @@ import BathroomBackground from "@/components/BathroomBackground";
 import { playFanfare, playStarSound } from "@/lib/sounds";
 import { speak, stopSpeaking } from "@/lib/voice";
 import { CELEBRATION_LINE, CELEBRATION_LINE_TOGETHER } from "@/data/voiceLines";
-import { joinNames, type ProfileSessionResult } from "@/lib/progress";
+import { adventDoorOf, dayLabel, joinNames, type ProfileSessionResult } from "@/lib/progress";
 
 
 interface CelebrationScreenProps {
@@ -109,7 +109,9 @@ const CelebrationScreen = ({ results, onDone, onAlbum }: CelebrationScreenProps)
                     ? "border-[#FF8A3D] shadow-[0_0_18px_#FF8A3D] "
                     : r.season === "autumn"
                       ? "border-[#E07B22] shadow-[0_0_18px_#E07B22] "
-                      : "border-ink shadow-[0_6px_0_hsl(var(--ink)/0.18)] ") +
+                      : r.season === "advent"
+                        ? "border-[#FFD23F] shadow-[0_0_18px_#FFD23F] "
+                        : "border-ink shadow-[0_6px_0_hsl(var(--ink)/0.18)] ") +
                   (together ? "px-3 py-3 w-[44%] max-w-[10rem]" : "px-8 py-4")
                 }
                 initial={{ rotateY: 180, scale: 0.6, opacity: 0 }}
@@ -131,6 +133,12 @@ const CelebrationScreen = ({ results, onDone, onAlbum }: CelebrationScreenProps)
                     )}
                     {r.season === "autumn" && (
                       <span className="text-xs font-display font-bold text-[#B45309]">🍂 Automne en forêt</span>
+                    )}
+                    {r.season === "advent" && adventDoorOf(r.newSticker.id) && (
+                      <span className="text-xs font-display text-[#8A6A00] text-center">
+                        🎄 Calendrier de l'Avent · <strong className="font-bold">{dayLabel(adventDoorOf(r.newSticker.id)!.day)}</strong> ·{" "}
+                        {r.slot === "morning" ? "☀️ matin" : "🌙 soir"}
+                      </span>
                     )}
                   </>
                 ) : (

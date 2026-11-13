@@ -13,4 +13,15 @@ import "./index.css";
 // Ask the browser to keep the history and stickers (no eviction under storage pressure).
 navigator.storage?.persist?.().catch(() => {});
 
-createRoot(document.getElementById("root")!).render(<App />);
+const start = () => createRoot(document.getElementById("root")!).render(<App />);
+
+// Dev server, or a test build made with VITE_FAKE_NOW: fakes the date (see src/lib/devClock.ts). The published app and the
+// real APK are built without it.
+if (import.meta.env.DEV || import.meta.env.VITE_FAKE_NOW) {
+  import("./lib/devClock").then(({ installDevClock }) => {
+    installDevClock();
+    start();
+  });
+} else {
+  start();
+}
