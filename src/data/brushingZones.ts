@@ -51,39 +51,40 @@ function zone(id: number, label: string, region: ToothRegion, phases: ZonePhase[
 }
 
 // Same order for each arch: outside → inside (front teeth) → back teeth left → back teeth right;
-// each back-teeth step goes cheek side → inside → top.
+// each back-teeth step goes cheek side → inside → top. Every part gets the same time: 8 parts per arch
+// (front outside, front inside, and cheek / inside / top for each side) × 11.25 s = 90 s per arch.
 export const BRUSHING_ZONES: BrushingZone[] = [
   zone(1, "Devant en haut", "upper-front", [
-    { view: "front", durationSeconds: 22, instruction: "Brosse le devant des dents du haut\u00A0!" },
+    { view: "front", durationSeconds: 11.25, instruction: "Brosse le devant des dents du haut\u00A0!" },
   ]),
   zone(2, "Derrière en haut", "upper-back", [
-    { view: "inside", durationSeconds: 14, instruction: "Maintenant, le derrière des dents du haut\u00A0!" },
+    { view: "inside", durationSeconds: 11.25, instruction: "Maintenant, le derrière des dents du haut\u00A0!" },
   ]),
   zone(3, "Fond en haut à gauche", "upper-left", [
-    { view: "side", durationSeconds: 9, instruction: "Les dents du fond en haut à gauche, côté joue\u00A0!" },
-    { view: "side-inside", durationSeconds: 9, instruction: "Et l'intérieur des dents du fond, en haut à gauche\u00A0!" },
-    { view: "top", durationSeconds: 9, instruction: "Et maintenant, le dessus des dents du fond\u00A0!" },
+    { view: "side", durationSeconds: 11.25, instruction: "Les dents du fond en haut à gauche, côté joue\u00A0!" },
+    { view: "side-inside", durationSeconds: 11.25, instruction: "Et l'intérieur des dents du fond, en haut à gauche\u00A0!" },
+    { view: "top", durationSeconds: 11.25, instruction: "Et maintenant, le dessus des dents du fond\u00A0!" },
   ]),
   zone(4, "Fond en haut à droite", "upper-right", [
-    { view: "side", durationSeconds: 9, instruction: "Les dents du fond en haut à droite, côté joue\u00A0!" },
-    { view: "side-inside", durationSeconds: 9, instruction: "L'intérieur des dents du fond, en haut à droite\u00A0!" },
-    { view: "top", durationSeconds: 9, instruction: "Le dessus des dents du fond, à droite\u00A0!" },
+    { view: "side", durationSeconds: 11.25, instruction: "Les dents du fond en haut à droite, côté joue\u00A0!" },
+    { view: "side-inside", durationSeconds: 11.25, instruction: "L'intérieur des dents du fond, en haut à droite\u00A0!" },
+    { view: "top", durationSeconds: 11.25, instruction: "Le dessus des dents du fond, à droite\u00A0!" },
   ]),
   zone(5, "Devant en bas", "lower-front", [
-    { view: "front", durationSeconds: 22, instruction: "On passe en bas ! Le devant des dents\u00A0!" },
+    { view: "front", durationSeconds: 11.25, instruction: "On passe en bas ! Le devant des dents\u00A0!" },
   ]),
   zone(6, "Derrière en bas", "lower-back", [
-    { view: "inside", durationSeconds: 14, instruction: "Et le derrière des dents du bas\u00A0!" },
+    { view: "inside", durationSeconds: 11.25, instruction: "Et le derrière des dents du bas\u00A0!" },
   ]),
   zone(7, "Fond en bas à gauche", "lower-left", [
-    { view: "side", durationSeconds: 9, instruction: "Les dents du fond en bas à gauche, côté joue\u00A0!" },
-    { view: "side-inside", durationSeconds: 9, instruction: "Et l'intérieur des dents du fond, en bas à gauche\u00A0!" },
-    { view: "top", durationSeconds: 9, instruction: "Et maintenant, le dessus des dents du fond\u00A0!" },
+    { view: "side", durationSeconds: 11.25, instruction: "Les dents du fond en bas à gauche, côté joue\u00A0!" },
+    { view: "side-inside", durationSeconds: 11.25, instruction: "Et l'intérieur des dents du fond, en bas à gauche\u00A0!" },
+    { view: "top", durationSeconds: 11.25, instruction: "Et maintenant, le dessus des dents du fond\u00A0!" },
   ]),
   zone(8, "Fond en bas à droite", "lower-right", [
-    { view: "side", durationSeconds: 9, instruction: "Les dents du fond en bas à droite, côté joue\u00A0!" },
-    { view: "side-inside", durationSeconds: 9, instruction: "L'intérieur des dents du fond, en bas à droite\u00A0!" },
-    { view: "top", durationSeconds: 9, instruction: "Le dessus des dents du fond, à droite\u00A0!" },
+    { view: "side", durationSeconds: 11.25, instruction: "Les dents du fond en bas à droite, côté joue\u00A0!" },
+    { view: "side-inside", durationSeconds: 11.25, instruction: "L'intérieur des dents du fond, en bas à droite\u00A0!" },
+    { view: "top", durationSeconds: 11.25, instruction: "Le dessus des dents du fond, à droite\u00A0!" },
   ]),
 ];
 

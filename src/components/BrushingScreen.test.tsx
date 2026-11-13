@@ -108,9 +108,9 @@ describe("BrushingScreen", () => {
 
   it("counts down 3-2-1 before the next step", () => {
     render(<BrushingScreen onComplete={() => {}} onCancel={() => {}} />);
-    advance(18000);
+    advance(7000);
     expect(screen.queryByTestId("countdown")).not.toBeInTheDocument();
-    advance(1250); // 19.25 s: 2.75 s left in step 1 (22 s)
+    advance(1250); // 8.25 s: 3 s left in step 1 (11.25 s)
     expect(screen.getByTestId("countdown")).toHaveTextContent("3");
   });
 
@@ -118,7 +118,7 @@ describe("BrushingScreen", () => {
     render(<BrushingScreen onComplete={() => {}} onCancel={() => {}} />);
     advance(5000);
     expect(screen.queryByTestId(/side-marker/)).not.toBeInTheDocument();
-    advance(41000); // 46 s: upper-left back teeth
+    advance(25000); // 30 s: upper-left back teeth (from 22.5 s)
     expect(screen.getByTestId("side-marker-left")).toBeInTheDocument();
   });
 
