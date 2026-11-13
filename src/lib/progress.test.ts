@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
+  ADVENT_EVENING,
+  ADVENT_FINALE,
+  ADVENT_MORNING,
   ADVENT_STICKERS,
   ALL_STICKERS,
   AUTUMN_STICKERS,
   HALLOWEEN_STICKERS,
   STICKERS,
+  adventContentOf,
   adventDoorOf,
   adventStickerFor,
   albumPages,
@@ -19,6 +23,7 @@ import {
   migrateStickerIds,
   recordSession,
   slotOf,
+  splitSticker,
   visibleCells,
   streakOf,
   weekOf,
@@ -259,14 +264,18 @@ describe("album pages", () => {
   });
 });
 
-describe("Advent calendar (1 → 24 December, one fixed sticker per date and slot)", () => {
+describe("Advent calendar (1 → 24 December, a random content per window, drawn when it opens)", () => {
   beforeEach(() => localStorage.clear());
   const dec = (day: number, hour = 8, year = 2026) => new Date(year, 11, day, hour);
 
-  it("has 24 doors × 2 windows, ids d01m … d24s, and runs 1 → 24 December every year", () => {
+  it("has 24 doors × 2 windows (legacy ids d01m … d24s), two pools of 24 contents, and runs 1 → 24 December every year", () => {
     expect(ADVENT_STICKERS).toHaveLength(48);
     expect(ADVENT_STICKERS[0].id).toBe("d01m");
     expect(ADVENT_STICKERS[47].id).toBe("d24s");
+    expect(ADVENT_MORNING).toHaveLength(24);
+    expect(ADVENT_EVENING).toHaveLength(24);
+    expect(ADVENT_MORNING[ADVENT_FINALE].emoji).toBe("🎅");
+    expect(ADVENT_EVENING[ADVENT_FINALE].emoji).toBe("🎇");
     expect(isAdventSeason(dec(1, 0))).toBe(true);
     expect(isAdventSeason(dec(24, 23))).toBe(true);
     expect(isAdventSeason(dec(25, 0))).toBe(false);
@@ -274,31 +283,46 @@ describe("Advent calendar (1 → 24 December, one fixed sticker per date and slo
     expect(isAdventSeason(dec(10, 8, 2027))).toBe(true);
   });
 
-  it("labels dates « 1er décembre », « 2 décembre » and reads a door back from its id", () => {
+  it("labels dates « 1er décembre », « 2 décembre » and reads a door and its content back from an id", () => {
     expect(dayLabel(1)).toBe("1er décembre");
     expect(dayLabel(2)).toBe("2 décembre");
     expect(dayLabel(24)).toBe("24 décembre");
-    expect(adventDoorOf("d05s")).toEqual({ day: 5, slot: "evening" });
-    expect(adventDoorOf("d12m")).toEqual({ day: 12, slot: "morning" });
-    expect(adventDoorOf("leaf")).toBeNull();
+    expect(adventDoorOf("d05s-07")).toEqual({ day: 5, slot: "evening", content: 7 });
+    expect(adventDoorOf("d12m")).toEqual({ day: 12, slot: "morning", content: null }); // v0.13: the date's own content
+    expect(adventContentOf(adventDoorOf("d12m")!)).toBe(11);
+    for (const bad of ["leaf", "d25m", "d00m", "d05x", "d05m-24", "d05m-1"]) expect(adventDoorOf(bad)).toBeNull();
   });
 
-  it("a brushing opens the window of its own date and slot, with no draw", () => {
-    const morning = recordSession(dec(5, 8), undefined, () => 0.99);
-    expect(morning.newSticker?.id).toBe("d05m");
+  it("a brushing opens the window of its own date and slot with a random content, stored with the window and the year", () => {
+    const morning = recordSession(dec(5, 8), undefined, () => 0);
+    expect(morning.newSticker).toEqual({ id: "d05m-00", emoji: "⛄", name: "Bonhomme de neige" });
     expect(morning.season).toBe("advent");
     const evening = recordSession(dec(5, 20), undefined, () => 0.99);
-    expect(evening.newSticker?.id).toBe("d05s");
-    expect(getProfile().stickers).toEqual([editionId("d05m", 2026), editionId("d05s", 2026)]);
-    expect(adventStickerFor(dec(7, 9), "morning")?.id).toBe("d07m");
+    expect(evening.newSticker?.id).toBe("d05s-22");
+    expect(getProfile().stickers).toEqual([editionId("d05m-00", 2026), editionId("d05s-22", 2026)]);
     expect(adventStickerFor(dec(25, 9), "morning")).toBeUndefined();
   });
 
+  it("two children draw different contents; one child never gets the same content twice in a slot", () => {
+    expect(adventStickerFor(dec(7), "morning", [], () => 0)?.id).not.toBe(adventStickerFor(dec(7), "morning", [], () => 0.5)?.id);
+    for (let day = 1; day <= 23; day++) recordSession(dec(day, 8), undefined, () => 0);
+    const contents = getProfile().stickers.map((id) => adventDoorOf(splitSticker(id).id)!.content);
+    expect(contents).toEqual(Array.from({ length: 23 }, (_, i) => i)); // always the first free one: 0, 1, 2 … 22
+    expect(new Set(contents).size).toBe(23);
+  });
+
+  it("24 December holds the same finale for everyone, whatever the draw", () => {
+    expect(adventStickerFor(dec(24, 8), "morning", [], () => 0)?.id).toBe("d24m-23");
+    expect(adventStickerFor(dec(24, 8), "morning", [], () => 0.9)?.id).toBe("d24m-23");
+    expect(adventStickerFor(dec(24, 20), "evening", [], () => 0.5)).toMatchObject({ id: "d24s-23", emoji: "🎇" });
+  });
+
   it("brushing twice in the same slot opens the window once; a missed day stays closed", () => {
-    recordSession(dec(2, 8));
+    recordSession(dec(2, 8), undefined, () => 0);
     expect(recordSession(dec(2, 9)).newSticker).toBeNull();
-    recordSession(dec(4, 8)); // 3 December skipped
-    expect(getProfile().stickers).toEqual([editionId("d02m", 2026), editionId("d04m", 2026)]);
+    recordSession(dec(4, 8), undefined, () => 0); // 3 December skipped
+    expect(getProfile().stickers).toEqual([editionId("d02m-00", 2026), editionId("d04m-01", 2026)]);
+    expect(adventStickerFor(dec(2), "morning", getProfile().stickers)).toBeUndefined(); // already open
   });
 
   it("from 25 December the classics are back, and the calendar keeps what was won", () => {
@@ -306,17 +330,27 @@ describe("Advent calendar (1 → 24 December, one fixed sticker per date and slo
     const after = recordSession(dec(25, 8));
     expect(after.season).toBeNull();
     expect(STICKERS.some((c) => c.id === after.newSticker?.id)).toBe(true);
-    expect(getProfile().stickers).toContain(editionId("d24s", 2026));
+    expect(getProfile().stickers).toContain(editionId("d24s-23", 2026));
   });
 
-  it("the album shows 48 windows while it runs, then folds with « revient en décembre 2027 »", () => {
-    const stored = [editionId("d01m", 2026), editionId("d01s", 2026), editionId("d02m", 2026)];
+  it("the album holds one sticker per open window, 48 in all, and folds with « revient en décembre 2027 »", () => {
+    const stored = [editionId("d01m-05", 2026), editionId("d01s-02", 2026), editionId("d02m-00", 2026)];
     const running = albumPages(stored, dec(5));
     expect(running[0]).toMatchObject({ key: "advent-2026", kind: "advent", current: true, won: 3, total: 48, slotted: false });
-    const folded = albumPages(stored, dec(28));
-    const page = folded.find((p) => p.key === "advent-2026")!;
+    expect(running[0].windows.d01m.name).toBe(ADVENT_MORNING[5].name);
+    expect(running[0].windows.d01s.name).toBe(ADVENT_EVENING[2].name);
+    const page = albumPages(stored, dec(28)).find((p) => p.key === "advent-2026")!;
     expect(page.current).toBe(false);
     expect(page.note).toBe("Un nouveau calendrier revient en décembre 2027\u00A0!");
     expect(albumPages(stored, new Date(2027, 5, 1)).find((p) => p.key === "advent-2026")!.note).toBe("Un nouveau calendrier revient en décembre 2027\u00A0!");
+  });
+
+  it("a window opened with two contents (two phones) shows the lowest everywhere and keeps both stored; v0.13 ids keep the date's content", () => {
+    const both = [editionId("d03m-09", 2026), editionId("d03m-04", 2026), editionId("d05s", 2026)];
+    const page = albumPages(both, dec(10))[0];
+    expect(page.won).toBe(2);
+    expect(page.windows.d03m.name).toBe(ADVENT_MORNING[4].name);
+    expect(page.windows.d05s.name).toBe(ADVENT_EVENING[4].name); // v0.13: 5 December → content 4
+    expect(both).toHaveLength(3);
   });
 });

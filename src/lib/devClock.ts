@@ -5,7 +5,7 @@
 //   http://<mac>:8080/?now=2026-12-05T09:00&seed=advent → plus a child (Léa) with Advent windows already opened
 // A test APK can bake the same two settings in at build time (VITE_FAKE_NOW=… VITE_FAKE_SEED=advent); there the
 // seed only fills an empty install, so what the tester does in that app is kept.
-import { editionId, replaceProgress, toDay, type Session } from "./progress";
+import { adventStickerFor, editionId, replaceProgress, toDay, type Session } from "./progress";
 
 export function installDevClock() {
   const params = new URLSearchParams(window.location.search);
@@ -38,7 +38,9 @@ function seedAdvent() {
   const stickers: string[] = [];
   const win = (day: number, slot: "morning" | "evening") => {
     sessions.push({ date: toDay(new Date(now.getFullYear(), 11, day)), slot });
-    stickers.push(editionId(`d${String(day).padStart(2, "0")}${slot === "morning" ? "m" : "s"}`, now.getFullYear()));
+    // The real draw, as if brushed on that day (a random content, none twice).
+    const sticker = adventStickerFor(new Date(now.getFullYear(), 11, day, slot === "morning" ? 8 : 20), slot, stickers);
+    if (sticker) stickers.push(editionId(sticker.id, now.getFullYear()));
   };
   for (let day = 1; day <= today; day++) {
     if (day % 3 !== 0 || day === today) win(day, "morning"); // every 3rd morning missed

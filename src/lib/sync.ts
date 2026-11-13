@@ -2,6 +2,7 @@
 // code, the other scans it and merges. Merging is a union (brushings and
 // stickers are never removed), so syncing both ways makes the phones identical.
 import {
+  ADVENT_MORNING,
   AVATARS,
   DEFAULT_PROFILE,
   MAX_PROFILES,
@@ -9,7 +10,11 @@ import {
   HALLOWEEN_STICKERS,
   SEASONS,
   STICKERS,
+  adventContentOf,
+  adventDoorOf,
+  adventSticker,
   editionId,
+  isOfSeason,
   newProfileId,
   splitSticker,
   toDay,
@@ -46,6 +51,11 @@ interface WireProfile {
    * ignore it, so they lose nothing.
    */
   e?: Record<string, string>;
+  /**
+   * Advent calendar contents, year → 48 bytes in the order d01m, d01s, d02m… (0 = closed, else the window's
+   * content + 1, base64url). Sent only when a window is open; older phones ignore it.
+   */
+  q?: Record<string, string>;
 }
 
 interface WireState {
@@ -132,14 +142,46 @@ function encodeProfile(id: string, name: string, avatar: string, history: Profil
   // Every other edition (the 2026 Halloween travels as `h`).
   const mine = history.stickers.map(splitSticker);
   for (const season of SEASONS) {
-    const years = new Set(mine.filter((m) => m.year !== null && season.stickers.some((s) => s.id === m.id)).map((m) => m.year!));
+    // The Advent calendar travels in `q` (its windows hold random contents), never in `e`.
+    if (season.kind === "advent") continue;
+    const years = new Set(mine.filter((m) => m.year !== null && isOfSeason(season, m.id)).map((m) => m.year!));
     for (const y of years) {
       if (season.id === "halloween" && y === FIRST_EDITION_YEAR) continue;
       const bitmap = bitmapOf(season.stickers, (id) => history.stickers.includes(editionId(id, y)));
       (wire.e ??= {})[`${season.code}${y}`] = bitmap;
     }
   }
+  // Advent calendar: one byte per window; if a window holds two contents (two phones), the lowest travels.
+  for (const m of mine) {
+    const door = m.year === null ? null : adventDoorOf(m.id);
+    if (!door || m.year === null) continue;
+    const q = ((wire.q ??= {})[m.year] ??= toBase64Url(new Uint8Array(48)));
+    const bytes = fromBase64Url(q);
+    const at = (door.day - 1) * 2 + (door.slot === "evening" ? 1 : 0);
+    const content = adventContentOf(door) + 1;
+    if (bytes[at] === 0 || content < bytes[at]) bytes[at] = content;
+    wire.q[m.year] = toBase64Url(bytes);
+  }
   return wire;
+}
+
+/** Advent contents of a `q` entry as stored ids; null if it is malformed. */
+function readAdvent(q: WireProfile["q"]): string[] | null {
+  const stored: string[] = [];
+  for (const [year, text] of Object.entries(q ?? {})) {
+    if (!/^20\d\d$/.test(year) || typeof text !== "string" || !/^[\w-]{1,80}$/.test(text)) return null;
+    let bytes: Uint8Array;
+    try {
+      bytes = fromBase64Url(text);
+    } catch {
+      return null;
+    }
+    if (bytes.length !== 48 || bytes.some((b) => b > ADVENT_MORNING.length)) return null;
+    bytes.forEach((b, at) => {
+      if (b) stored.push(editionId(adventSticker(Math.floor(at / 2) + 1, at % 2 ? "evening" : "morning", b - 1).id, Number(year)));
+    });
+  }
+  return stored;
 }
 
 /** This phone's state as the text to put in the QR code. */
@@ -196,10 +238,12 @@ export function decodeState(text: string): DecodeResult {
       typeof w.s === "string" && /^[\w-]{0,1000}$/.test(w.s) &&
       Number.isInteger(w.k) && w.k >= 0 && w.k < 2 ** STICKERS.length &&
       (w.h === undefined || (Number.isInteger(w.h) && w.h >= 0 && w.h < 2 ** HALLOWEEN_STICKERS.length)) &&
-      (w.e === undefined || (typeof w.e === "object" && w.e !== null && !Array.isArray(w.e) && Object.keys(w.e).length <= 12));
+      (w.e === undefined || (typeof w.e === "object" && w.e !== null && !Array.isArray(w.e) && Object.keys(w.e).length <= 12)) &&
+      (w.q === undefined || (typeof w.q === "object" && w.q !== null && !Array.isArray(w.q) && Object.keys(w.q).length <= 4));
     if (!valid) return INVALID;
     const editions = readEditions(w.e);
-    if (!editions) return INVALID;
+    const advent = readAdvent(w.q);
+    if (!editions || !advent) return INVALID;
 
     const sessions: Session[] = [];
     let bytes: Uint8Array;
@@ -220,6 +264,7 @@ export function decodeState(text: string): DecodeResult {
       ...idsOf(STICKERS, w.k),
       ...idsOf(HALLOWEEN_STICKERS, w.h ?? 0).map((id) => editionId(id, FIRST_EDITION_YEAR)),
       ...editions,
+      ...advent,
     ];
     profiles.push({ id: w.i, name: w.n, avatar: AVATARS[w.a], sessions, stickers });
   }

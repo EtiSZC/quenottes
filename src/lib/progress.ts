@@ -193,6 +193,19 @@ export const ADVENT_STICKERS: readonly { id: string; emoji: string; name: string
   },
 );
 
+export interface AdventContent {
+  emoji: string;
+  name: string;
+}
+/**
+ * What a window can hold: 24 « day » contents for the ☀️ windows, 24 « evening » ones for the 🌙 windows.
+ * A window gets one of them at random when it opens (never twice the same for a child); the 24th of each
+ * pool is the finale of 24 December, the same for everyone.
+ */
+export const ADVENT_MORNING: readonly AdventContent[] = ADVENT_DOORS.map(([emoji, name]) => ({ emoji, name }));
+export const ADVENT_EVENING: readonly AdventContent[] = ADVENT_DOORS.map(([, , emoji, name]) => ({ emoji, name }));
+export const ADVENT_FINALE = 23;
+
 export const ALL_STICKERS = [...STICKERS, ...HALLOWEEN_STICKERS, ...AUTUMN_STICKERS, ...ADVENT_STICKERS] as const;
 export type Sticker = (typeof ALL_STICKERS)[number];
 
@@ -243,15 +256,60 @@ export const SEASONS: readonly Season[] = [
 /** « 1er décembre », « 2 décembre »… */
 export const dayLabel = (day: number) => `${day === 1 ? "1er" : day} décembre`;
 
-/** Day (1-24) and slot of an Advent sticker id (`d05s` → 5, evening); null for any other id. */
-export function adventDoorOf(id: string): { day: number; slot: Slot } | null {
-  const match = /^d(\d\d)([ms])$/.exec(id);
-  return match ? { day: Number(match[1]), slot: match[2] === "m" ? "morning" : "evening" } : null;
+export interface AdventDoor {
+  day: number;
+  slot: Slot;
+  /** Index in the slot's pool; null for an id without content (v0.13), whose content is the date's. */
+  content: number | null;
 }
 
-/** The Advent sticker that today's brushing of this slot opens, or undefined outside 1-24 December. */
-export const adventStickerFor = (now: Date, slot: Slot) =>
-  isAdventSeason(now) ? ADVENT_STICKERS.find((s) => s.id === `d${String(now.getDate()).padStart(2, "0")}${slot === "morning" ? "m" : "s"}`) : undefined;
+/** Day (1-24), slot and content of an Advent sticker id (`d05s-07` → 5, evening, 7; `d05s` → content null); null for any other id. */
+export function adventDoorOf(id: string): AdventDoor | null {
+  const match = /^d(\d\d)([ms])(?:-(\d\d))?$/.exec(id);
+  if (!match) return null;
+  const day = Number(match[1]);
+  const content = match[3] === undefined ? null : Number(match[3]);
+  if (day < 1 || day > 24 || (content !== null && content >= ADVENT_MORNING.length)) return null;
+  return { day, slot: match[2] === "m" ? "morning" : "evening", content };
+}
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+/** `d05m`: the window of 5 December, morning, whatever it holds. */
+export const adventWindowKey = (day: number, slot: Slot) => `d${pad2(day)}${slot === "morning" ? "m" : "s"}`;
+/** The content of an id: its own, else the one the date used to fix (v0.13). */
+export const adventContentOf = (door: AdventDoor) => door.content ?? door.day - 1;
+
+/** The sticker of a window holding `content`. */
+export function adventSticker(day: number, slot: Slot, content: number) {
+  const pool = slot === "morning" ? ADVENT_MORNING : ADVENT_EVENING;
+  return { id: `${adventWindowKey(day, slot)}-${pad2(content)}`, emoji: pool[content].emoji, name: pool[content].name };
+}
+
+/**
+ * The Advent sticker that today's brushing of this slot opens: a content this child doesn't have yet, drawn at
+ * random (24 December: the fixed finale). undefined outside 1-24 December, or if the window is already open.
+ * `owned` = the child's stored sticker ids.
+ */
+export function adventStickerFor(now: Date, slot: Slot, owned: readonly string[] = [], random = Math.random) {
+  if (!isAdventSeason(now)) return undefined;
+  const year = now.getFullYear();
+  const day = now.getDate();
+  const mine = owned
+    .map((stored) => ({ ...splitSticker(stored), stored }))
+    .filter((m) => m.year === year)
+    .map((m) => adventDoorOf(m.id))
+    .filter((door) => door !== null && door.slot === slot);
+  if (mine.some((door) => door.day === day)) return undefined;
+  if (day === 24) return adventSticker(day, slot, ADVENT_FINALE);
+  const taken = new Set(mine.map(adventContentOf));
+  const free = Array.from({ length: ADVENT_FINALE }, (_, i) => i).filter((i) => !taken.has(i));
+  const choices = free.length ? free : Array.from({ length: ADVENT_FINALE }, (_, i) => i);
+  return adventSticker(day, slot, choices[Math.floor(random() * choices.length)]);
+}
+
+/** Whether a stored sticker id belongs to the season (an Advent id carries its content). */
+export const isOfSeason = (season: Season, id: string) =>
+  season.kind === "advent" ? adventDoorOf(id) !== null : season.stickers.some((s) => s.id === id);
 
 /** Halloween stickers were stored without a year until the first edition (2026) had ended. */
 export const FIRST_EDITION_YEAR = 2026;
@@ -265,7 +323,7 @@ export function splitSticker(stored: string): { id: string; year: number | null 
   return at > 0 && Number.isInteger(year) ? { id: stored.slice(0, at), year } : { id: stored, year: null };
 }
 
-export const seasonOfSticker = (id: string): Season | undefined => SEASONS.find((s) => s.stickers.some((x) => x.id === id));
+export const seasonOfSticker = (id: string): Season | undefined => SEASONS.find((s) => isOfSeason(s, id));
 
 /** Halloween ids saved by v0.9-v0.11 (no year) are the 2026 edition. Keeps the order, drops duplicates. */
 export function migrateStickerIds(ids: string[]): string[] {
@@ -323,6 +381,8 @@ export interface AlbumPage {
   earnedOrder: string[];
   /** "advent": drawn as 24 doors instead of a grid. */
   kind: "grid" | "advent";
+  /** Advent only: each open window (`d05m`) with the sticker it holds. */
+  windows: Readonly<Record<string, Sticker>>;
   /** A grid longer than 20 stickers (« Automne en forêt »): boxes follow the winning order, not the sticker. */
   slotted: boolean;
   won: number;
@@ -347,7 +407,22 @@ export function albumPages(stored: string[], now = new Date()): AlbumPage[] {
   const mine = stored.map(splitSticker);
   const build = (season: Season | null, y: number | null): AlbumPage => {
     const stickers = season ? season.stickers : STICKERS;
-    const earnedOrder = [...new Set(mine.filter((m) => m.year === y && stickers.some((s) => s.id === m.id)).map((m) => m.id))];
+    // Advent: one sticker per window. If two phones opened the same window with different contents, the
+    // lowest one is shown (everywhere), and nothing is removed from what is stored.
+    const best = new Map<string, number>();
+    if (season?.kind === "advent") {
+      for (const m of mine) {
+        const door = m.year === y ? adventDoorOf(m.id) : null;
+        if (!door) continue;
+        const key = adventWindowKey(door.day, door.slot);
+        best.set(key, Math.min(best.get(key) ?? Infinity, adventContentOf(door)));
+      }
+    }
+    const windows = Object.fromEntries(
+      [...best].map(([key, content]) => [key, adventSticker(Number(key.slice(1, 3)), key.endsWith("m") ? "morning" : "evening", content)]),
+    );
+    const earnedOrder =
+      season?.kind === "advent" ? [...best.keys()] : [...new Set(mine.filter((m) => m.year === y && stickers.some((s) => s.id === m.id)).map((m) => m.id))];
     const earned = new Set(earnedOrder);
     return {
       key: season ? `${season.id}-${y}` : "classic",
@@ -358,6 +433,7 @@ export function albumPages(stored: string[], now = new Date()): AlbumPage[] {
       earned,
       earnedOrder,
       kind: season?.kind ?? "grid",
+      windows,
       slotted: stickers.length > GRID_START && season?.kind !== "advent",
       won: earned.size,
       total: season?.kind === "advent" ? stickers.length : visibleCells(earned.size, stickers.length),
@@ -372,7 +448,7 @@ export function albumPages(stored: string[], now = new Date()): AlbumPage[] {
   const editions: AlbumPage[] = [];
   for (const season of SEASONS) {
     const years = new Set<number>();
-    for (const m of mine) if (m.year !== null && season.stickers.some((s) => s.id === m.id)) years.add(m.year);
+    for (const m of mine) if (m.year !== null && isOfSeason(season, m.id)) years.add(m.year);
     if (season.inSeason(now)) years.add(year);
     for (const y of years) editions.push(build(season, y));
   }
@@ -632,7 +708,7 @@ export function recordSession(now = new Date(), profile?: string, random = Math.
     const year = now.getFullYear();
     const season = SEASONS.find((s) => s.inSeason(now));
     // Advent: the one sticker of today's date and slot; other seasons: any sticker not won yet this year.
-    const candidates = season?.kind === "advent" ? [adventStickerFor(now, session.slot)].filter((s) => s !== undefined) : (season?.stickers ?? []);
+    const candidates = season?.kind === "advent" ? [adventStickerFor(now, session.slot, p.stickers, random)].filter((s) => s !== undefined) : (season?.stickers ?? []);
     const seasonal = candidates.filter((s) => !p.stickers.includes(editionId(s.id, year)));
     const pool: readonly Sticker[] = seasonal.length ? seasonal : STICKERS.filter((s) => !p.stickers.includes(s.id));
     newSticker = pool.length ? pool[Math.floor(random() * pool.length)] : null;

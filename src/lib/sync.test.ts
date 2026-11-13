@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AUTUMN_STICKERS, HALLOWEEN_STICKERS, STICKERS, editionId, getProfile, loadProgress, mergeProfiles, recordSession, replaceProgress, toDay, type ProgressData, type Session } from "./progress";
+import { ADVENT_MORNING, AUTUMN_STICKERS, HALLOWEEN_STICKERS, albumPages, STICKERS, editionId, getProfile, loadProgress, mergeProfiles, recordSession, replaceProgress, toDay, type ProgressData, type Session } from "./progress";
 import { SYNC_PREFIX, decodeState, encodeState, findLosses, mergeState, normalizeName, suggestMatches, suggestSameChild } from "./sync";
 
 const NOW = new Date(2026, 9, 11, 9);
@@ -321,11 +321,36 @@ describe("seasonal stickers travel in the QR (fields h and e)", () => {
     expect(decode(text)[0].stickers.sort()).toEqual(stickers.sort());
   });
 
-  it("the Advent calendar travels in e under n2026 and merges as a union", () => {
-    const stickers = [editionId("d01m", 2026), editionId("d24s", 2026)];
-    const text = encodeState(state([{ id: "p1", name: "Léa", stickers }]), NOW);
-    expect(Object.keys(wire(text).p[0].e)).toEqual(["n2026"]);
-    expect(decode(text)[0].stickers.sort()).toEqual(stickers.sort());
+  const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+  it("the Advent calendar travels in q (one byte per window), never in e", () => {
+    const stickers = [editionId("d01m-05", 2026), editionId("d24s-23", 2026)];
+    const p = wire(encodeState(state([{ id: "p1", name: "Léa", stickers }]), NOW)).p[0];
+    expect(p).not.toHaveProperty("e");
+    expect(Object.keys(p.q)).toEqual(["2026"]);
+    expect(decode(encodeState(state([{ id: "p1", name: "Léa", stickers }]), NOW))[0].stickers.sort()).toEqual(stickers.sort());
+  });
+
+  it("two phones of the same child share each window's content and lose nothing", () => {
+    const a = state([{ id: "p1", name: "Léa", stickers: [editionId("d03m-09", 2026), editionId("d05s-01", 2026)] }]);
+    const b = state([{ id: "p1", name: "Léa", stickers: [editionId("d03m-04", 2026), editionId("d06m-02", 2026)] }]);
+    const onA = sync(a, b);
+    const onB = sync(b, a);
+    const ids = (d: ProgressData) => [...d.data.p1.stickers].sort();
+    expect(ids(onA)).toEqual([editionId("d03m-04", 2026), editionId("d03m-09", 2026), editionId("d05s-01", 2026), editionId("d06m-02", 2026)].sort());
+    expect(ids(onA)).toEqual(ids(onB));
+    for (const phone of [onA, onB]) expect(albumPages(phone.data.p1.stickers, new Date(2026, 11, 10))[0].windows.d03m.name).toBe(ADVENT_MORNING[4].name);
+  });
+
+  it("still reads an Advent code from a v0.13 phone (e.n2026, the date's own content), and refuses a broken q", () => {
+    const base = wire(encodeState(state([{ id: "p1", name: "Léa" }]), NOW));
+    const withE = SYNC_PREFIX + JSON.stringify({ ...base, p: [{ ...base.p[0], e: { n2026: "AQAAAAAA" } }] });
+    expect(decode(withE)[0].stickers).toEqual(["d01m@2026"]);
+    const zeros = new Array(48).fill(0);
+    for (const q of [{ 2026: "AQ" }, { 2026: b64([25, ...zeros.slice(1)]) }, { 26: b64(zeros) }, { 2026: 5 }, []]) {
+      expect(decodeState(SYNC_PREFIX + JSON.stringify({ ...base, p: [{ ...base.p[0], q }] })).ok).toBe(false);
+    }
+    expect(decodeState(SYNC_PREFIX + JSON.stringify({ ...base, p: [{ ...base.p[0], q: { 2026: b64([5, ...zeros.slice(1)]) } }] })).ok).toBe(true);
   });
 
   it("leaves h and e out when a child has no seasonal sticker (same QR as v0.8)", () => {

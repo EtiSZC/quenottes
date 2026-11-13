@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { adventDoorOf, dayLabel, type AlbumPage, type Slot } from "@/lib/progress";
+import { adventWindowKey, dayLabel, type AlbumPage, type Slot } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 
 type WindowState = "won" | "today" | "past" | "future";
@@ -13,8 +13,7 @@ const SLOT_WORD: Record<Slot, string> = { morning: "matin", evening: "soir" };
  * winnable at 14:00, when the brushing becomes an evening one.
  */
 function stateOf(page: AlbumPage, day: number, slot: Slot, now: Date): WindowState {
-  const id = `d${String(day).padStart(2, "0")}${slot === "morning" ? "m" : "s"}`;
-  if (page.earned.has(id)) return "won";
+  if (page.windows[adventWindowKey(day, slot)]) return "won";
   const thisYear = page.year === now.getFullYear();
   if (!thisYear) return page.year! < now.getFullYear() ? "past" : "future";
   if (now.getMonth() < 11) return "future";
@@ -49,7 +48,7 @@ const AdventDoors = ({ page, now }: { page: AlbumPage; now: Date }) => (
           <span className="font-display font-bold text-lg leading-none text-[#FFD23F]">{day}</span>
           {(["morning", "evening"] as const).map((slot) => {
             const state = stateOf(page, day, slot, now);
-            const sticker = state === "won" ? page.stickers.find((s) => adventDoorOf(s.id)?.day === day && adventDoorOf(s.id)?.slot === slot) : undefined;
+            const sticker = page.windows[adventWindowKey(day, slot)];
             const where = `${dayLabel(day)}, ${SLOT_WORD[slot]}`;
             const label = sticker ? `${where} : ${sticker.name}` : `${where} : ${state === "today" ? "à ouvrir" : state === "future" ? "pas encore" : "fermé"}`;
             return (
