@@ -115,14 +115,14 @@ describe("retention screens", () => {
   });
 
   it("album: the Advent calendar shows 24 doors with won, today, past and coming windows", () => {
-    recordSession(new Date(2026, 11, 3, 8)); // 3 December, morning: window 3 ☀️
-    recordSession(new Date(2026, 11, 5, 8)); // 5 December, morning: window 5 ☀️ (Sapin)
+    recordSession(new Date(2026, 11, 3, 8), undefined, () => 0); // 3 December, morning: content 0 (Bonhomme de neige)
+    recordSession(new Date(2026, 11, 5, 8), undefined, () => 0); // 5 December, morning: first free content, 1 (Cadeau)
     render(<StickerAlbum onBack={() => {}} now={new Date(2026, 11, 5, 9)} />);
     expect(screen.getByRole("region", { name: "Calendrier de l'Avent 2026" })).toBeInTheDocument();
     expect(screen.getByText("5 décembre", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByLabelText("2 sur 48")).toBeInTheDocument();
-    expect(screen.getByLabelText("5 décembre, matin : Sapin")).toBeInTheDocument();
-    expect(screen.getByLabelText("3 décembre, matin : Écharpe")).toBeInTheDocument();
+    expect(screen.getByLabelText("5 décembre, matin : Cadeau")).toBeInTheDocument();
+    expect(screen.getByLabelText("3 décembre, matin : Bonhomme de neige")).toBeInTheDocument();
     expect(screen.getByLabelText("5 décembre, soir : à ouvrir")).toBeInTheDocument(); // still to win today
     expect(screen.getByLabelText("4 décembre, matin : fermé")).toBeInTheDocument(); // a day gone by: calm, no lock
     expect(screen.getByLabelText("6 décembre, matin : pas encore")).toBeInTheDocument(); // to come
@@ -130,7 +130,7 @@ describe("retention screens", () => {
   });
 
   it("album: after 14:00 the morning window of today is no longer winnable, and the calendar folds on 25 December", () => {
-    recordSession(new Date(2026, 11, 5, 20));
+    recordSession(new Date(2026, 11, 5, 20), undefined, () => 0);
     const { unmount } = render(<StickerAlbum onBack={() => {}} now={new Date(2026, 11, 5, 15)} />);
     expect(screen.getByLabelText("5 décembre, matin : fermé")).toBeInTheDocument();
     unmount();
@@ -139,7 +139,7 @@ describe("retention screens", () => {
     expect(bar).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText(/Un nouveau calendrier revient en décembre 2027/)).toBeInTheDocument();
     fireEvent.click(bar);
-    expect(screen.getByLabelText("5 décembre, soir : Étoile brillante")).toBeInTheDocument();
+    expect(screen.getByLabelText("5 décembre, soir : Étoile")).toBeInTheDocument();
   });
 
   it("celebration: an Advent sticker says which date and slot it opened", () => {
