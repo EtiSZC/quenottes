@@ -151,10 +151,12 @@ export function stepInfo({ zoneIndex, phaseIndex }: StepRef) {
   return { zone, view, arch: zone.arch as Arch, side };
 }
 
+/** Views drawn with see-through teeth and the brush behind them (inner surfaces). */
+export const showsInside = (view: MouthView) => view === "inside" || view === "side-inside";
+
 /** Tooth indices (0..9) targeted by a step. Molars are listed back to front. */
 export function targetIndices(step: StepRef): number[] {
-  const { view, side } = stepInfo(step);
-  if (view === "inside") return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const { side } = stepInfo(step);
   if (side === "front") return [3, 4, 5, 6];
   return side === "left" ? [0, 1, 2] : [9, 8, 7];
 }
@@ -190,10 +192,10 @@ export function spotlightWindow(step: StepRef): Box {
 
 export const ZOOM = 1.9;
 
-/** viewBox of the smile drawing: zoomed on the molars for "side" steps, full otherwise. */
+/** viewBox of the smile drawing: zoomed on the molars for "side" and "side-inside" steps, full otherwise. */
 export function zoomViewBox(step: StepRef): string {
   const { view, arch } = stepInfo(step);
-  if (view !== "side") return FULL_VIEWBOX;
+  if (view !== "side" && view !== "side-inside") return FULL_VIEWBOX;
   const teeth = targetIndices(step).map((i) => teethOfArch(arch)[i]);
   const cx = teeth.reduce((s, t) => s + t.cx, 0) / teeth.length;
   const cy = teeth.reduce((s, t) => s + t.cy, 0) / teeth.length;
@@ -240,10 +242,10 @@ export function brushPlan(step: StepRef): BrushPlan {
     };
   }
   const teeth = ids.map((i) => teethOfArch(arch)[i]);
-  if (view === "inside") {
+  if (showsInside(view)) {
     return {
       points: teeth.map((t) => ({ x: t.cx, y: upper ? t.gumY + 12 : t.gumY - 12 })),
-      passSeconds: 6,
+      passSeconds: view === "inside" ? 4 : 3,
       // Vertical brush behind the teeth, short handle pointing out of the mouth.
       orient: upper ? "rotate(90)" : "rotate(-90)",
       handle: 22,

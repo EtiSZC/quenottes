@@ -19,6 +19,7 @@ import {
   stepInfo,
   targetIndices,
   teethOfArch,
+  showsInside,
   zoomViewBox,
   type ArchTooth,
   type Box,
@@ -56,7 +57,7 @@ interface MouthDiagramProps {
 const MouthDiagram = ({ zoneIndex, phaseIndex, phaseElapsed, finished = false }: MouthDiagramProps) => {
   const step: StepRef = { zoneIndex, phaseIndex };
   const { view } = stepInfo(step);
-  const drawing = finished ? "smile" : view === "top" ? "arch" : view === "inside" ? "inside" : "smile";
+  const drawing = finished ? "smile" : view === "top" ? "arch" : showsInside(view) ? "inside" : "smile";
 
   return (
     // Card flip whenever the drawing changes (outside ↔ inside ↔ top-down).
@@ -84,7 +85,7 @@ const MouthDiagram = ({ zoneIndex, phaseIndex, phaseElapsed, finished = false }:
 const SmileView = ({ step, phaseElapsed, finished }: { step: StepRef; phaseElapsed: number; finished: boolean }) => {
   const clipId = useId();
   const { zone, view, arch } = stepInfo(step);
-  const inside = view === "inside" && !finished;
+  const inside = showsInside(view) && !finished;
   const targets = finished ? [] : targetIndices(step);
   const plan = brushPlan(step);
   const brushAt = brushPosition(plan, phaseElapsed);
