@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import AdventDoors from "@/components/AdventDoors";
 import BathroomBackground from "@/components/BathroomBackground";
-import { albumPages, displayName, getActiveProfiles, getProfile, listProfiles, placeInGrid, type AlbumPage, type Sticker } from "@/lib/progress";
+import { albumPages, dayLabel, displayName, getActiveProfiles, getProfile, listProfiles, placeInGrid, type AlbumPage, type Sticker } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 
 interface StickerAlbumProps {
@@ -10,7 +11,7 @@ interface StickerAlbumProps {
   now?: Date;
 }
 
-type Look = "classic" | "halloween" | "autumn";
+type Look = "classic" | "halloween" | "autumn" | "advent";
 const lookOf = (page: AlbumPage): Look => page.season?.id ?? "classic";
 
 /** Colours per page: classics on the bathroom background, each season on its own card. */
@@ -45,15 +46,26 @@ const LOOK = {
     has: "bg-white border-[3px] border-[#E07B22] shadow-[0_0_12px_#E07B2266]",
     missing: "bg-[#E07B22]/10 border-[3px] border-dashed border-[#E07B22]/40",
   },
+  advent: {
+    box: "bg-[#12264A] border-ink",
+    title: "text-[#FFD23F]",
+    hint: "text-white/85",
+    bar: "bg-[#12264A] border-ink",
+    barTitle: "text-[#FFD23F]",
+    barNote: "text-white/85",
+    has: "bg-white border-[3px] border-[#FFD23F]",
+    missing: "bg-white/10 border-[3px] border-dashed border-white/30",
+  },
 } as const;
 
-const PLACEHOLDER: Record<Look, string> = { classic: "?", halloween: "🎃", autumn: "🍂" };
+const PLACEHOLDER: Record<Look, string> = { classic: "?", halloween: "🎃", autumn: "🍂", advent: "🎄" };
 const HINT: Partial<Record<Look, string>> = {
   halloween: "Seulement pendant Halloween\u00A0!",
   autumn: "Jusqu'au 30 novembre\u00A0!",
 };
 
-const Grid = ({ page, look, seed }: { page: AlbumPage; look: Look; seed: string }) => {
+const Grid = ({ page, look, seed, now }: { page: AlbumPage; look: Look; seed: string; now: Date }) => {
+  if (page.kind === "advent") return <AdventDoors page={page} now={now} />;
   // A long grid (« Automne en forêt »): the first 20 stickers land in scattered boxes (like the classics,
   // where each sticker has its own place), the next ones fill the added rows in order.
   const cells: (Sticker | null)[] = page.slotted
@@ -150,7 +162,7 @@ const StickerAlbum = ({ onBack, now = new Date() }: StickerAlbumProps) => {
           const look = lookOf(page);
           const colours = LOOK[look];
           const key = `${profileId}-${page.key}`;
-          const icon = page.season?.id === "halloween" ? ["🎃 ", " 🦇"] : page.season?.id === "autumn" ? ["🍂 ", ""] : ["", ""];
+          const icon = page.season?.id === "halloween" ? ["🎃 ", " 🦇"] : page.season ? [`${page.season.icon} `, ""] : ["", ""];
           const title = `${icon[0]}${page.title}${icon[1]}`;
           const counter = (
             <span className="text-base" aria-label={`${page.won} sur ${page.total}`}>
@@ -170,7 +182,12 @@ const StickerAlbum = ({ onBack, now = new Date() }: StickerAlbumProps) => {
                   {counter}
                 </h2>
                 {HINT[look] && <p className={cn("px-1 -mt-2 text-sm font-body font-semibold", colours.hint)}>{HINT[look]}</p>}
-                <Grid page={page} look={look} seed={profileId} />
+                {page.kind === "advent" && (
+                  <p className={cn("px-1 -mt-2 text-sm font-body font-normal", colours.hint)}>
+                    Aujourd'hui : <strong className="font-bold">{dayLabel(now.getDate())}</strong>
+                  </p>
+                )}
+                <Grid page={page} look={look} seed={profileId} now={now} />
               </section>
             );
           }
@@ -201,7 +218,7 @@ const StickerAlbum = ({ onBack, now = new Date() }: StickerAlbumProps) => {
               </button>
               {open && (
                 <div id={panel}>
-                  <Grid page={page} look={look} seed={profileId} />
+                  <Grid page={page} look={look} seed={profileId} now={now} />
                 </div>
               )}
             </section>

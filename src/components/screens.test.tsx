@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import CelebrationScreen from "./CelebrationScreen";
 import HomeScreen from "./HomeScreen";
 import StickerAlbum from "./StickerAlbum";
-import { AUTUMN_STICKERS, HALLOWEEN_STICKERS, STICKERS, recordSession } from "@/lib/progress";
+import { ADVENT_STICKERS, AUTUMN_STICKERS, HALLOWEEN_STICKERS, STICKERS, recordSession } from "@/lib/progress";
 
 vi.mock("@/lib/voice", () => ({ speak: vi.fn(), stopSpeaking: vi.fn(), preloadVoice: vi.fn() }));
 vi.mock("canvas-confetti", () => ({ default: vi.fn() }));
@@ -33,7 +33,7 @@ describe("retention screens", () => {
   });
 
   it("home: shows the week calendar and the album with its sticker count", () => {
-    vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 11, 15, 9) }); // no season running: 20 stickers to win
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(2027, 0, 15, 9) }); // no season running: 20 stickers to win
     recordSession(new Date());
     render(<HomeScreen onStart={() => {}} onAlbum={() => {}} onTip={() => {}} onSwitch={() => {}} onParents={() => {}} />);
     expect(screen.getByRole("img", { name: /Cette semaine : 1 brossage/ })).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe("retention screens", () => {
   it("album: after the season Halloween is folded, says a new grid comes back, and unfolds on a tap", () => {
     recordSession(new Date(2026, 9, 20, 8), undefined, () => 0);
     for (let i = 0; i < STICKERS.length; i++) recordSession(new Date(2026, 8, 1 + Math.floor(i / 2), i % 2 ? 20 : 8));
-    render(<StickerAlbum onBack={() => {}} now={new Date(2026, 11, 1)} />);
+    render(<StickerAlbum onBack={() => {}} now={new Date(2026, 11, 28)} />);
     const bar = screen.getByRole("button", { name: /Halloween 2026/ });
     expect(bar).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText(/Une nouvelle grille revient en octobre 2027/)).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe("retention screens", () => {
 
   it("album: a child who never won a Halloween sticker doesn't see Halloween after the season", () => {
     recordSession(new Date(2026, 8, 7, 8));
-    render(<StickerAlbum onBack={() => {}} now={new Date(2026, 11, 1)} />);
+    render(<StickerAlbum onBack={() => {}} now={new Date(2026, 11, 28)} />);
     expect(screen.queryByText(/Halloween/)).not.toBeInTheDocument();
     expect(screen.getByLabelText("1 autocollants sur 20")).toBeInTheDocument();
   });
@@ -112,5 +112,49 @@ describe("retention screens", () => {
       <CelebrationScreen results={[{ slot: "evening", newSticker: AUTUMN_STICKERS[0], season: "autumn", streak: 1, profile: KID }]} onDone={() => {}} onAlbum={() => {}} />,
     );
     expect(screen.getByText(/🍂 Automne en forêt/)).toBeInTheDocument();
+  });
+
+  it("album: the Advent calendar shows 24 doors with won, today, past and coming windows", () => {
+    recordSession(new Date(2026, 11, 3, 8)); // 3 December, morning: window 3 ☀️
+    recordSession(new Date(2026, 11, 5, 8)); // 5 December, morning: window 5 ☀️ (Sapin)
+    render(<StickerAlbum onBack={() => {}} now={new Date(2026, 11, 5, 9)} />);
+    expect(screen.getByRole("region", { name: "Calendrier de l'Avent 2026" })).toBeInTheDocument();
+    expect(screen.getByText("5 décembre", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByLabelText("2 sur 48")).toBeInTheDocument();
+    expect(screen.getByLabelText("5 décembre, matin : Sapin")).toBeInTheDocument();
+    expect(screen.getByLabelText("3 décembre, matin : Écharpe")).toBeInTheDocument();
+    expect(screen.getByLabelText("5 décembre, soir : à ouvrir")).toBeInTheDocument(); // still to win today
+    expect(screen.getByLabelText("4 décembre, matin : fermé")).toBeInTheDocument(); // a day gone by: calm, no lock
+    expect(screen.getByLabelText("6 décembre, matin : pas encore")).toBeInTheDocument(); // to come
+    expect(screen.getAllByRole("listitem")).toHaveLength(24);
+  });
+
+  it("album: after 14:00 the morning window of today is no longer winnable, and the calendar folds on 25 December", () => {
+    recordSession(new Date(2026, 11, 5, 20));
+    const { unmount } = render(<StickerAlbum onBack={() => {}} now={new Date(2026, 11, 5, 15)} />);
+    expect(screen.getByLabelText("5 décembre, matin : fermé")).toBeInTheDocument();
+    unmount();
+    render(<StickerAlbum onBack={() => {}} now={new Date(2026, 11, 28)} />);
+    const bar = screen.getByRole("button", { name: /Calendrier de l'Avent 2026/ });
+    expect(bar).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText(/Un nouveau calendrier revient en décembre 2027/)).toBeInTheDocument();
+    fireEvent.click(bar);
+    expect(screen.getByLabelText("5 décembre, soir : Étoile brillante")).toBeInTheDocument();
+  });
+
+  it("celebration: an Advent sticker says which date and slot it opened", () => {
+    render(
+      <CelebrationScreen results={[{ slot: "morning", newSticker: ADVENT_STICKERS[8], season: "advent", streak: 1, profile: KID }]} onDone={() => {}} onAlbum={() => {}} />,
+    );
+    expect(screen.getByText(ADVENT_STICKERS[8].name)).toBeInTheDocument();
+    expect(screen.getByText("5 décembre", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText(/Calendrier de l'Avent/)).toBeInTheDocument();
+  });
+
+  it("home: a tree sits on the title corner during Advent", () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 11, 10, 9) });
+    render(<HomeScreen onStart={() => {}} onAlbum={() => {}} onTip={() => {}} onSwitch={() => {}} onParents={() => {}} />);
+    expect(screen.getByText("🎄")).toBeInTheDocument();
+    vi.useRealTimers();
   });
 });

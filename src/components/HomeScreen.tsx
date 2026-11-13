@@ -9,7 +9,7 @@ import SpeechBubble from "@/components/SpeechBubble";
 import WeekCalendar from "@/components/WeekCalendar";
 import ToothpasteTubeIcon from "@/components/illustrations/ToothpasteTubeIcon";
 import LongPressButton from "@/components/LongPressButton";
-import { albumPages, displayName, getActiveProfiles, getProfile, listProfiles, isAutumnSeason, isHalloweenSeason, streakOf, weekOf } from "@/lib/progress";
+import { albumPages, displayName, getActiveProfiles, getProfile, listProfiles, SEASONS, streakOf, weekOf } from "@/lib/progress";
 import { playStartSound, unlockAudio } from "@/lib/sounds";
 
 interface HomeScreenProps {
@@ -24,7 +24,7 @@ interface HomeScreenProps {
 
 const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreenProps) => {
   // Read once per visit to the home screen (the history only changes after a session).
-  const { kids, multiProfile } = useMemo(() => {
+  const { kids, multiProfile, season } = useMemo(() => {
     const now = new Date();
     const kids = getActiveProfiles().map((meta) => {
       const history = getProfile(meta.id);
@@ -37,7 +37,7 @@ const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreen
         stickerTotal: pages.reduce((n, pg) => n + pg.total, 0),
       };
     });
-    return { kids, multiProfile: listProfiles().length >= 2 };
+    return { kids, multiProfile: listProfiles().length >= 2, season: SEASONS.find((s) => s.inSeason(now)) };
   }, []);
   const together = kids.length > 1;
   const { week, streak, stickerCount, stickerTotal } = kids[0];
@@ -118,9 +118,9 @@ const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreen
           className="relative text-5xl sm:text-6xl font-display font-bold text-center mb-3 sticker-title"
         >
           <AppTitle />
-          {(isHalloweenSeason() || isAutumnSeason()) && (
+          {season && (
             <span aria-hidden className="absolute -top-7 -right-3 text-4xl rotate-12">
-              {isHalloweenSeason() ? "🎃" : "🍂"}
+              {season.icon}
             </span>
           )}
         </motion.h1>
