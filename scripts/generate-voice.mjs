@@ -1,7 +1,7 @@
-// Pre-records Brillou's sentences with ElevenLabs into public/voice/ and writes
+// Pre-records Brillou's sentences into public/voice/ and writes
 // src/data/voice-manifest.json (sentence → file). Only new or changed sentences
 // are generated; clips no longer used are deleted.
-// Usage: node scripts/generate-voice.mjs   (needs ELEVENLABS_API_KEY in .env.local)
+// Usage: node scripts/generate-voice.mjs   (needs the API key in .env.local)
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { VOICE_LINES } from "../src/data/voiceLines.ts";

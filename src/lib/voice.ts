@@ -2,7 +2,7 @@ import { QueueStrategy, TextToSpeech } from "@capacitor-community/text-to-speech
 import manifest from "@/data/voice-manifest.json";
 import { isMuted, loadClip, playClip, stopClip, subscribeMuted } from "./sounds";
 
-// Quenottes's voice: pre-recorded ElevenLabs clips (public/voice, see
+// Quenottes's voice: pre-recorded clips (public/voice, see
 // scripts/generate-voice.mjs). Any sentence without a clip falls back to the
 // phone's text-to-speech (native on Android; speechSynthesis in a browser).
 
