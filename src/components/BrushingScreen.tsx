@@ -62,7 +62,8 @@ const BrushingScreen = ({ onComplete, onCancel }: BrushingScreenProps) => {
   }, []);
 
   const elapsed = Math.min(TOTAL_DURATION, Math.floor(elapsedMs / 1000));
-  const { index: currentZoneIndex } = getZoneAt(elapsed);
+  // Zone boundaries are not whole seconds (11.25 s per part), so the zone follows the fractional time.
+  const { index: currentZoneIndex } = getZoneAt(Math.min(TOTAL_DURATION, elapsedMs / 1000));
   const currentZone = BRUSHING_ZONES[currentZoneIndex];
   // Fractional seconds into the zone: drives the phase, the brush path and the shine.
   const secondsIntoZone = Math.min(

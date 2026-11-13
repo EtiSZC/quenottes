@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { stepInfo, type StepRef } from "./geometry";
+import { showsInside, stepInfo, type StepRef } from "./geometry";
 
 const INK = "hsl(var(--ink))";
 const MINT = "hsl(var(--mint))";
@@ -22,7 +22,7 @@ const MiniMap = ({ step, className }: { step: StepRef; className?: string }) => 
         return (
           <g key={row}>
             {COLUMNS.map((c) => {
-              const active = rowActive && (view === "inside" || c.side === side);
+              const active = rowActive && c.side === side;
               return (
                 <rect
                   key={c.side}
@@ -35,7 +35,7 @@ const MiniMap = ({ step, className }: { step: StepRef; className?: string }) => 
                   stroke={INK}
                   strokeOpacity={active ? 1 : 0.35}
                   strokeWidth={1.8}
-                  strokeDasharray={active && view === "inside" ? "3 2" : undefined}
+                  strokeDasharray={active && showsInside(view) ? "3 2" : undefined}
                 />
               );
             })}

@@ -18,7 +18,8 @@ import {
 const FRONT_TOP = { zoneIndex: 0, phaseIndex: 0 };
 const INSIDE_TOP = { zoneIndex: 1, phaseIndex: 0 };
 const LEFT_TOP_SIDE = { zoneIndex: 2, phaseIndex: 0 };
-const LEFT_TOP_CHEWING = { zoneIndex: 2, phaseIndex: 1 };
+const LEFT_TOP_INSIDE = { zoneIndex: 2, phaseIndex: 1 };
+const LEFT_TOP_CHEWING = { zoneIndex: 2, phaseIndex: 2 };
 const RIGHT_TOP_SIDE = { zoneIndex: 3, phaseIndex: 0 };
 
 describe("teeth", () => {
@@ -39,8 +40,9 @@ describe("teeth", () => {
 describe("targets and spotlight", () => {
   it("targets the right teeth for each step (molars back to front)", () => {
     expect(targetIndices(FRONT_TOP)).toEqual([3, 4, 5, 6]);
-    expect(targetIndices(INSIDE_TOP)).toHaveLength(10);
+    expect(targetIndices(INSIDE_TOP)).toEqual([3, 4, 5, 6]); // « Derrière »: the four front teeth only
     expect(targetIndices(LEFT_TOP_SIDE)).toEqual([0, 1, 2]);
+    expect(targetIndices(LEFT_TOP_INSIDE)).toEqual([0, 1, 2]); // the inner side of the same molars
     expect(targetIndices(RIGHT_TOP_SIDE)).toEqual([9, 8, 7]);
   });
 
@@ -58,6 +60,8 @@ describe("molar zoom", () => {
   it("zooms only on cheek-side molar steps, on the right side, within the drawing", () => {
     expect(zoomViewBox(FRONT_TOP)).toBe(FULL_VIEWBOX);
     expect(zoomViewBox(LEFT_TOP_CHEWING)).toBe(FULL_VIEWBOX);
+    expect(zoomViewBox(INSIDE_TOP)).toBe(FULL_VIEWBOX); // the front teeth are seen whole
+    expect(zoomViewBox(LEFT_TOP_INSIDE)).toBe(zoomViewBox(LEFT_TOP_SIDE)); // the inner side zooms on the same molars
     const [x, y, w, h] = zoomViewBox(LEFT_TOP_SIDE).split(" ").map(Number);
     expect(w).toBeCloseTo(VIEW_W / ZOOM, 0);
     expect(h).toBeCloseTo(VIEW_H / ZOOM, 0);
@@ -80,6 +84,8 @@ describe("brush path", () => {
   it("uses the right gesture and layer per view", () => {
     expect(brushPlan(FRONT_TOP).gesture).toBe("circles");
     expect(brushPlan(INSIDE_TOP)).toMatchObject({ gesture: "flick-down", layer: "back" });
+    expect(brushPlan(LEFT_TOP_INSIDE)).toMatchObject({ gesture: "flick-down", layer: "back" });
+    expect(brushPlan(LEFT_TOP_INSIDE).points).toHaveLength(3);
     expect(brushPlan(LEFT_TOP_SIDE).gesture).toBe("scrub");
     expect(brushPlan(LEFT_TOP_CHEWING).gesture).toBe("slide");
   });
