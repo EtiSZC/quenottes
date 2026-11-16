@@ -9,9 +9,13 @@ import "@fontsource/nunito/latin-600.css";
 import "@fontsource/nunito/latin-700.css";
 import "@fontsource/nunito/latin-600-italic.css";
 import "./index.css";
+import { watchWebUpdate } from "./lib/updates";
 
 // Ask the browser to keep the history and stickers (no eviction under storage pressure).
 navigator.storage?.persist?.().catch(() => {});
+
+// Web: notice when a new version took over (shown in the Parents area).
+watchWebUpdate();
 
 const start = () => createRoot(document.getElementById("root")!).render(<App />);
 
