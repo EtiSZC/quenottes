@@ -200,7 +200,7 @@ const ParentsScreen = ({ onBack, onSync }: ParentsScreenProps) => {
         {updateCheckAvailable() && (
           <div className="w-full max-w-md flex items-center justify-between px-1">
             <span className="text-sm font-display font-bold text-ink" id="updates-label">
-              Mises à jour
+              Vérification des mises à jour
             </span>
             <button
               type="button"
@@ -222,13 +222,15 @@ const ParentsScreen = ({ onBack, onSync }: ParentsScreenProps) => {
           </div>
         )}
 
+        <p className="w-full max-w-md text-xs font-body font-semibold text-muted-foreground/70 text-left" data-testid="app-version">
+          {versionLabel()}
+        </p>
+
         <p className="w-full max-w-md text-xs font-body font-semibold text-muted-foreground text-center">
           Voix de Quenottes : elevenlabs.io
         </p>
 
-        <p className="w-full max-w-md text-xs font-body font-semibold text-muted-foreground/70 text-center" data-testid="app-version">
-          {versionLabel()}
-        </p>
+        <p className="w-full max-w-md text-xs font-body font-semibold text-muted-foreground text-center">quenottes.site - 2026</p>
       </div>
     </BathroomBackground>
   );

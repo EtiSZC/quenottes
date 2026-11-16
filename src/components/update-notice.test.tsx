@@ -23,10 +23,16 @@ describe("update notice", () => {
     localStorage.clear();
   });
 
-  it("the bottom of the Parents page shows only the version", async () => {
+  it("the bottom of the Parents page shows the version (left), then the voice credit, then the site and year", async () => {
     const { ParentsScreen } = await load(false);
     parents(ParentsScreen);
-    expect(screen.getByTestId("app-version")).toHaveTextContent(/^v1\.2\.3$/);
+    const version = screen.getByTestId("app-version");
+    expect(version).toHaveTextContent(/^v1\.2\.3$/);
+    expect(version).toHaveClass("text-left");
+    const credit = screen.getByText("Voix de Quenottes : elevenlabs.io");
+    const site = screen.getByText("quenottes.site - 2026");
+    expect(version.compareDocumentPosition(credit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(credit.compareDocumentPosition(site) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Mise à jour" })).not.toBeInTheDocument();
     expect(screen.queryByRole("switch")).not.toBeInTheDocument(); // the switch is for the Android app only
   });
@@ -41,7 +47,7 @@ describe("update notice", () => {
     expect(card).toHaveTextContent("Version 1.3 disponible");
     expect(screen.getByRole("link", { name: "Voir la nouveauté" })).toHaveAttribute("href", RELEASES);
     expect(updates.getUpdateState().apk?.version).toBe("1.3.0");
-    expect(screen.getByRole("switch", { name: "Mises à jour" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: "Vérification des mises à jour" })).toHaveAttribute("aria-checked", "true");
     render(<HomeScreen onStart={() => {}} onAlbum={() => {}} onTip={() => {}} onSwitch={() => {}} onParents={() => {}} />);
     expect(screen.getByTestId("update-dot")).toBeInTheDocument();
   });
@@ -55,7 +61,7 @@ describe("update notice", () => {
       parents(ParentsScreen);
     });
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("switch", { name: "Mises à jour" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByRole("switch", { name: "Vérification des mises à jour" })).toHaveAttribute("aria-checked", "false");
     expect(screen.queryByRole("region", { name: "Mise à jour" })).not.toBeInTheDocument();
   });
 
