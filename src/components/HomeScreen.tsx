@@ -9,6 +9,7 @@ import SpeechBubble from "@/components/SpeechBubble";
 import WeekCalendar from "@/components/WeekCalendar";
 import ToothpasteTubeIcon from "@/components/illustrations/ToothpasteTubeIcon";
 import LongPressButton from "@/components/LongPressButton";
+import { useUpdates } from "@/hooks/use-updates";
 import { albumPages, displayName, getActiveProfiles, getProfile, listProfiles, SEASONS, streakOf, weekOf } from "@/lib/progress";
 import { playStartSound, unlockAudio } from "@/lib/sounds";
 
@@ -23,6 +24,7 @@ interface HomeScreenProps {
 }
 
 const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreenProps) => {
+  const updates = useUpdates();
   // Read once per visit to the home screen (the history only changes after a session).
   const { kids, multiProfile, season } = useMemo(() => {
     const now = new Date();
@@ -185,13 +187,15 @@ const HomeScreen = ({ onStart, onAlbum, onTip, onSwitch, onParents }: HomeScreen
         >
           <ToothpasteTubeIcon className="w-10 h-10" />
         </button>
-        <LongPressButton
-          onLongPress={onParents}
-          label="Espace parents : maintenir 2 secondes"
-          className="absolute bottom-5 left-1/2 -translate-x-1/2 h-9 text-sm"
-        >
-          ⚙︎ Parents
-        </LongPressButton>
+        {/* The dot sits on the corner of the button, outside it: inside, it would cover the label. */}
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2">
+          <LongPressButton onLongPress={onParents} label="Espace parents : maintenir 2 secondes" className="h-9 text-sm">
+            ⚙︎ Parents
+          </LongPressButton>
+          {(updates.web || updates.apk) && (
+            <span aria-hidden data-testid="update-dot" className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-bubblegum border-2 border-white" />
+          )}
+        </div>
       </div>
     </BathroomBackground>
   );

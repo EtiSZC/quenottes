@@ -1,9 +1,13 @@
 import { defineConfig, type Plugin } from "vite";
-import { copyFileSync } from "node:fs";
+import { copyFileSync, readFileSync } from "node:fs";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+
+// The version shown at the bottom of the Parents page and compared with `version.json`. APP_VERSION_OVERRIDE
+// only serves test builds (a pretend older app, to see the update notice).
+const appVersion = process.env.APP_VERSION_OVERRIDE ?? JSON.parse(readFileSync("package.json", "utf8")).version;
 
 // GitHub Pages serves the PWA under a sub-path (e.g. /quenottes/); every other
 // build (dev server, Android/Capacitor) keeps "/". Set only by the Pages workflow.
@@ -18,8 +22,23 @@ const pagesSpaFallback = (): Plugin => ({
   },
 });
 
+// Publishes `version.json` next to the site (`{ version, url }`): the Android app reads it, at most once a day
+// when the Parents area opens, to tell a parent that a newer version exists.
+const versionFile = (): Plugin => ({
+  name: "version-file",
+  apply: "build",
+  generateBundle() {
+    this.emitFile({
+      type: "asset",
+      fileName: "version.json",
+      source: JSON.stringify({ version: appVersion, url: "https://github.com/EtiSZC/quenottes/releases/latest" }),
+    });
+  },
+});
+
 export default defineConfig(({ mode }) => ({
   base,
+  define: { __APP_VERSION__: JSON.stringify(appVersion) },
   server: {
     host: "::",
     port: 8080,
@@ -31,6 +50,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     pagesSpaFallback(),
+    versionFile(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png"],
@@ -56,6 +76,8 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/~oauth/],
         // Everything needed offline: code, Lily's voice clips, fonts, mascot images, icons.
         globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2,mp3,json,webmanifest}"],
+        // version.json must always come fresh from the network, never from the offline cache.
+        globIgnores: ["version.json"],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
     }),

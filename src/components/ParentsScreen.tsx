@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BathroomBackground from "@/components/BathroomBackground";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { suggestSameChild } from "@/lib/sync";
 import SameChildCard from "@/components/SameChildCard";
 import { PARENT_TIP } from "@/data/toothpasteTip";
+import { useUpdates } from "@/hooks/use-updates";
+import { checkForUpdate, setUpdatesEnabled, updateCheckAvailable, updatesEnabled, versionLabel } from "@/lib/updates";
 
 interface ParentsScreenProps {
   onBack: () => void;
@@ -29,6 +31,12 @@ const ParentsScreen = ({ onBack, onSync }: ParentsScreenProps) => {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   // Profiles left by the old sync bug (same name twice, or a "Moi" holding a child's stickers).
   const [suggestions, setSuggestions] = useState(() => suggestSameChild(loadProgress()));
+  const updates = useUpdates();
+  const [checking, setChecking] = useState(updatesEnabled);
+  // Android app: look for a newer version when this page opens (at most once a day).
+  useEffect(() => {
+    void checkForUpdate();
+  }, []);
   const refresh = () => {
     setProfiles(listProfiles());
     setSuggestions(suggestSameChild(loadProgress()));
@@ -53,6 +61,28 @@ const ParentsScreen = ({ onBack, onSync }: ParentsScreenProps) => {
           </button>
           <h1 className="text-3xl font-display font-bold sticker-title">Espace parents</h1>
         </div>
+        {(updates.web || updates.apk) && (
+          <section
+            aria-label="Mise à jour"
+            className="w-full max-w-md bg-white border-[3px] border-ink rounded-3xl p-4 flex flex-col gap-3 shadow-[0_4px_0_hsl(var(--ink)/0.15)]"
+          >
+            <p className="font-display font-bold text-lg text-ink">
+              {updates.web ? "🎁 Nouvelle version disponible" : `🎁 Version ${versionLabel(updates.apk!.version).slice(1)} disponible`}
+            </p>
+            {updates.web ? (
+              <Button variant="secondary" onClick={() => window.location.reload()}>
+                Mettre à jour
+              </Button>
+            ) : (
+              <Button variant="secondary" asChild>
+                <a href={updates.apk!.url} target="_blank" rel="noopener noreferrer">
+                  Voir la nouveauté
+                </a>
+              </Button>
+            )}
+          </section>
+        )}
+
         <p className="w-full max-w-md text-sm font-body font-semibold text-muted-foreground">
           Un profil par enfant (jusqu'à {MAX_PROFILES}). Les prénoms et les autocollants restent sur ce téléphone.
         </p>
@@ -167,9 +197,40 @@ const ParentsScreen = ({ onBack, onSync }: ParentsScreenProps) => {
           <p className="text-xs font-body font-semibold text-muted-foreground">{PARENT_TIP.sources}</p>
         </section>
 
+        {updateCheckAvailable() && (
+          <div className="w-full max-w-md flex items-center justify-between px-1">
+            <span className="text-sm font-display font-bold text-ink" id="updates-label">
+              Vérification des mises à jour
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={checking}
+              aria-labelledby="updates-label"
+              onClick={() => {
+                setUpdatesEnabled(!checking);
+                setChecking(!checking);
+                if (!checking) void checkForUpdate();
+              }}
+              className={cn(
+                "w-14 h-8 rounded-full border-[3px] border-ink p-0.5 flex items-center transition-colors",
+                checking ? "bg-mint justify-end" : "bg-white/70 justify-start",
+              )}
+            >
+              <span className="w-5 h-5 rounded-full bg-ink" />
+            </button>
+          </div>
+        )}
+
+        <p className="w-full max-w-md text-xs font-body font-semibold text-muted-foreground/70 text-left" data-testid="app-version">
+          {versionLabel()}
+        </p>
+
         <p className="w-full max-w-md text-xs font-body font-semibold text-muted-foreground text-center">
           Voix de Quenottes : elevenlabs.io
         </p>
+
+        <p className="w-full max-w-md text-xs font-body font-semibold text-muted-foreground text-center">quenottes.site - 2026</p>
       </div>
     </BathroomBackground>
   );
